@@ -13,6 +13,8 @@ import {
   ChevronDown,
   ChevronUp,
   Crown,
+  Plane,
+  Map,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
@@ -26,10 +28,12 @@ import { FamilyMembersPanel } from "@/components/FamilyMembersPanel";
 import { MergeItinerary } from "@/components/MergeItinerary";
 import { PdfExport } from "@/components/PdfExport";
 import { BudgetTracker } from "@/components/BudgetTracker";
+import { FlightTracker } from "@/components/FlightTracker";
+import { IslandMapView } from "@/components/IslandMapView";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 
-type TabType = "chat" | "search" | "itinerary" | "family" | "merge";
+type TabType = "chat" | "search" | "itinerary" | "family" | "merge" | "flights" | "map";
 
 export default function TripDashboard() {
   const [, params] = useRoute("/trip/:id");
@@ -122,6 +126,8 @@ export default function TripDashboard() {
     { key: "itinerary", label: "My Itinerary", icon: <List className="w-5 h-5" /> },
     { key: "family", label: "Family", icon: <Users className="w-5 h-5" /> },
     { key: "merge", label: "Merge & Finalize", icon: <GitMerge className="w-5 h-5" />, ownerOnly: false },
+    { key: "flights", label: "Flights", icon: <Plane className="w-5 h-5" /> },
+    { key: "map", label: "Island Map", icon: <Map className="w-5 h-5" /> },
   ];
 
   return (
@@ -418,6 +424,21 @@ export default function TripDashboard() {
                   />
                 </div>
                 <MergeItinerary tripId={trip.id} isOwner={isOwner} />
+              </div>
+            )}
+
+            {activeTab === "flights" && (
+              <div className="p-4 sm:p-6 overflow-y-auto" style={{ minHeight: "600px" }}>
+                <FlightTracker tripId={trip.id} />
+              </div>
+            )}
+
+            {activeTab === "map" && (
+              <div className="p-4 sm:p-6 overflow-y-auto" style={{ minHeight: "600px" }}>
+                <IslandMapView
+                  tripId={trip.id}
+                  islands={trip.islands as string[] ?? []}
+                />
               </div>
             )}
           </div>

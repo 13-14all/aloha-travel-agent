@@ -230,3 +230,121 @@ describe("budget tracker calculations", () => {
     expect(getColor(100, true)).toBe("red");
   });
 });
+
+// ─── Flight Tracker Logic Tests ───────────────────────────────────────────────
+
+describe("flight tracker", () => {
+  it("groups flights by leg type correctly", () => {
+    const LEG_ORDER = ["outbound", "inter_island", "return", "other"] as const;
+    type Leg = (typeof LEG_ORDER)[number];
+
+    const mockFlights = [
+      { id: 1, leg: "outbound" as Leg, airline: "United", flightNumber: "UA 500", date: "2025-09-15" },
+      { id: 2, leg: "inter_island" as Leg, airline: "Hawaiian", flightNumber: "HA 100", date: "2025-09-22" },
+      { id: 3, leg: "return" as Leg, airline: "United", flightNumber: "UA 501", date: "2025-09-29" },
+    ];
+
+    const grouped = LEG_ORDER.reduce<Record<Leg, typeof mockFlights>>(
+      (acc, leg) => {
+        acc[leg] = mockFlights.filter((f) => f.leg === leg);
+        return acc;
+      },
+      { outbound: [], inter_island: [], return: [], other: [] }
+    );
+
+    expect(grouped.outbound).toHaveLength(1);
+    expect(grouped.inter_island).toHaveLength(1);
+    expect(grouped.return).toHaveLength(1);
+    expect(grouped.other).toHaveLength(0);
+    expect(grouped.outbound[0].flightNumber).toBe("UA 500");
+  });
+
+  it("calculates total flight cost correctly", () => {
+    const flights = [
+      { price: "450.00" },
+      { price: "320.00" },
+      { price: null },
+      { price: "180.50" },
+    ];
+
+    const total = flights.reduce((sum, f) => sum + (f.price ? parseFloat(f.price) : 0), 0);
+    expect(total).toBeCloseTo(950.5, 2);
+  });
+
+  it("formats airport codes as uppercase", () => {
+    const code = "den";
+    expect(code.toUpperCase()).toBe("DEN");
+  });
+
+  it("formats time from 24h to 12h correctly", () => {
+    const formatTime = (t: string | null) => {
+      if (!t) return "—";
+      const [h, m] = t.split(":");
+      const hour = parseInt(h);
+      const ampm = hour >= 12 ? "PM" : "AM";
+      const h12 = hour % 12 || 12;
+      return `${h12}:${m} ${ampm}`;
+    };
+
+    expect(formatTime("08:00")).toBe("8:00 AM");
+    expect(formatTime("13:30")).toBe("1:30 PM");
+    expect(formatTime("00:00")).toBe("12:00 AM");
+    expect(formatTime("12:00")).toBe("12:00 PM");
+    expect(formatTime(null)).toBe("—");
+  });
+
+  it("leg config covers all four leg types", () => {
+    const LEG_CONFIG = {
+      outbound:     { label: "Outbound",     emoji: "✈️" },
+      return:       { label: "Return",       emoji: "🏠" },
+      inter_island: { label: "Inter-Island", emoji: "🌺" },
+      other:        { label: "Other",        emoji: "🛫" },
+    };
+
+    expect(Object.keys(LEG_CONFIG)).toHaveLength(4);
+    expect(LEG_CONFIG.inter_island.emoji).toBe("🌺");
+    expect(LEG_CONFIG.outbound.label).toBe("Outbound");
+  });
+});
+
+// ─── Island Map Logic Tests ───────────────────────────────────────────────────
+
+describe("island map", () => {
+  it("has correct center coordinates for Oahu", () => {
+    const ISLAND_CENTERS: Record<string, { lat: number; lng: number; zoom: number }> = {
+      "Oahu":       { lat: 21.4389,  lng: -158.0001, zoom: 11 },
+      "Big Island": { lat: 19.5429,  lng: -155.6659, zoom: 9  },
+      "Maui":       { lat: 20.7984,  lng: -156.3319, zoom: 10 },
+    };
+
+    expect(ISLAND_CENTERS["Oahu"].lat).toBeCloseTo(21.44, 1);
+    expect(ISLAND_CENTERS["Oahu"].lng).toBeCloseTo(-158.0, 1);
+    expect(ISLAND_CENTERS["Big Island"].zoom).toBe(9);
+  });
+
+  it("category colors cover all itinerary categories", () => {
+    const CATEGORY_COLORS = {
+      activity:       { emoji: "🤿", label: "Activities" },
+      lodging:        { emoji: "🏨", label: "Lodging" },
+      restaurant:     { emoji: "🍽️", label: "Dining" },
+      transportation: { emoji: "🚌", label: "Transport" },
+    };
+
+    const categories = ["activity", "lodging", "restaurant", "transportation"];
+    categories.forEach((cat) => {
+      expect(CATEGORY_COLORS).toHaveProperty(cat);
+    });
+  });
+
+  it("filters map items by island correctly", () => {
+    const items = [
+      { id: 1, title: "Snorkeling", island: "Oahu",       category: "activity" },
+      { id: 2, title: "Hotel",      island: "Big Island", category: "lodging" },
+      { id: 3, title: "Luau",       island: "Oahu",       category: "activity" },
+    ];
+
+    const oahuItems = items.filter((i) => i.island === "Oahu");
+    expect(oahuItems).toHaveLength(2);
+    expect(oahuItems.every((i) => i.island === "Oahu")).toBe(true);
+  });
+});

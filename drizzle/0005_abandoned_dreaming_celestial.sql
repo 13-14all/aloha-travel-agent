@@ -1,0 +1,23 @@
+CREATE TABLE `flights` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`tripId` int NOT NULL,
+	`userId` int NOT NULL,
+	`leg` enum('outbound','return','inter_island','other') NOT NULL DEFAULT 'outbound',
+	`airline` varchar(128),
+	`flightNumber` varchar(32),
+	`departureAirport` varchar(8),
+	`arrivalAirport` varchar(8),
+	`departureCity` varchar(128),
+	`arrivalCity` varchar(128),
+	`date` varchar(32),
+	`departureTime` varchar(8),
+	`arrivalTime` varchar(8),
+	`confirmationCode` varchar(64),
+	`seatInfo` varchar(64),
+	`price` decimal(10,2),
+	`notes` text,
+	`sortOrder` int NOT NULL DEFAULT 0,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `flights_id` PRIMARY KEY(`id`)
+);

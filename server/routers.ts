@@ -32,6 +32,11 @@ import {
   deleteItineraryItem,
   saveSearchResults,
   getSearchResults,
+  addFlight,
+  getFlightsByTrip,
+  getFlightById,
+  updateFlight,
+  deleteFlight,
 } from "./db";
 import { chatWithAgent, extractTripData, searchForRecommendations, DESTINATION_CONFIGS } from "./agent";
 
@@ -724,6 +729,105 @@ export const appRouter = router({
       .query(async ({ ctx, input }) => {
         await assertTripAccess(input.tripId, ctx.user.id);
         return getSearchResults(input.tripId, input.category, input.island);
+      }),
+  }),
+
+  // ─── Flights ────────────────────────────────────────────────────────────────
+  flights: router({
+    list: protectedProcedure
+      .input(z.object({ tripId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        await assertTripAccess(input.tripId, ctx.user.id);
+        return getFlightsByTrip(input.tripId);
+      }),
+
+    add: protectedProcedure
+      .input(
+        z.object({
+          tripId: z.number(),
+          leg: z.enum(["outbound", "return", "inter_island", "other"]).default("outbound"),
+          airline: z.string().optional(),
+          flightNumber: z.string().optional(),
+          departureAirport: z.string().max(8).optional(),
+          arrivalAirport: z.string().max(8).optional(),
+          departureCity: z.string().optional(),
+          arrivalCity: z.string().optional(),
+          date: z.string().optional(),
+          departureTime: z.string().optional(),
+          arrivalTime: z.string().optional(),
+          confirmationCode: z.string().optional(),
+          seatInfo: z.string().optional(),
+          price: z.number().optional(),
+          notes: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        await assertTripAccess(input.tripId, ctx.user.id, "planner");
+        const id = await addFlight({
+          ...input,
+          userId: ctx.user.id,
+          sortOrder: 0,
+          price: input.price != null ? String(input.price) : undefined,
+        });
+        return { id };
+      }),
+
+    update: protectedProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          leg: z.enum(["outbound", "return", "inter_island", "other"]).optional(),
+          airline: z.string().optional(),
+          flightNumber: z.string().optional(),
+          departureAirport: z.string().max(8).optional(),
+          arrivalAirport: z.string().max(8).optional(),
+          departureCity: z.string().optional(),
+          arrivalCity: z.string().optional(),
+          date: z.string().optional(),
+          departureTime: z.string().optional(),
+          arrivalTime: z.string().optional(),
+          confirmationCode: z.string().optional(),
+          seatInfo: z.string().optional(),
+          price: z.number().nullable().optional(),
+          notes: z.string().optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const { id, ...data } = input;
+        await updateFlight(id, data as any);
+        return { success: true };
+      }),
+
+    remove: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await deleteFlight(input.id);
+        return { success: true };
+      }),
+  }),
+
+  // ─── Map Data ───────────────────────────────────────────────────────────────
+  map: router({
+    /** Returns all master itinerary items with location data for map plotting */
+    items: protectedProcedure
+      .input(z.object({ tripId: z.number(), island: z.string().optional() }))
+      .query(async ({ ctx, input }) => {
+        await assertTripAccess(input.tripId, ctx.user.id);
+        const allItems = await getItineraryItems(input.tripId, null, true);
+        const filtered = input.island
+          ? allItems.filter((item) => item.island === input.island)
+          : allItems;
+        return filtered.map((item) => ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          location: item.location,
+          island: item.island,
+          category: item.category,
+          url: item.url,
+          priceRange: item.priceRange,
+          timeOfDay: item.timeOfDay,
+        }));
       }),
   }),
 });

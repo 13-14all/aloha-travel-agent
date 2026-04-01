@@ -208,3 +208,44 @@ export type SearchResultItem = {
 
 export type SearchResult = typeof searchResults.$inferSelect;
 export type InsertSearchResult = typeof searchResults.$inferInsert;
+
+// ─── Flights ──────────────────────────────────────────────────────────────────
+
+export const flights = mysqlTable("flights", {
+  id: int("id").autoincrement().primaryKey(),
+  tripId: int("tripId").notNull(),
+  userId: int("userId").notNull(),
+  /** Flight leg type */
+  leg: mysqlEnum("leg", ["outbound", "return", "inter_island", "other"]).default("outbound").notNull(),
+  /** Airline name (e.g. "United", "Hawaiian Airlines") */
+  airline: varchar("airline", { length: 128 }),
+  /** Flight number (e.g. "UA 1234") */
+  flightNumber: varchar("flightNumber", { length: 32 }),
+  /** Departure airport code (e.g. "DEN") */
+  departureAirport: varchar("departureAirport", { length: 8 }),
+  /** Arrival airport code (e.g. "HNL") */
+  arrivalAirport: varchar("arrivalAirport", { length: 8 }),
+  /** Full departure city/airport name */
+  departureCity: varchar("departureCity", { length: 128 }),
+  /** Full arrival city/airport name */
+  arrivalCity: varchar("arrivalCity", { length: 128 }),
+  /** Date string YYYY-MM-DD */
+  date: varchar("date", { length: 32 }),
+  /** Departure time HH:MM (local) */
+  departureTime: varchar("departureTime", { length: 8 }),
+  /** Arrival time HH:MM (local) */
+  arrivalTime: varchar("arrivalTime", { length: 8 }),
+  /** Booking confirmation code */
+  confirmationCode: varchar("confirmationCode", { length: 64 }),
+  /** Seat info or class */
+  seatInfo: varchar("seatInfo", { length: 64 }),
+  /** Estimated or actual price in USD */
+  price: decimal("price", { precision: 10, scale: 2 }),
+  notes: text("notes"),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Flight = typeof flights.$inferSelect;
+export type InsertFlight = typeof flights.$inferInsert;

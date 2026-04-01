@@ -106,3 +106,23 @@
 - [x] Budget tracker visible in TripDashboard sidebar (always visible)
 - [x] Budget tracker also shown in Merge & Finalize tab
 - [x] "Uncosted items" count badge for items missing an estimate
+
+## Flight Tracker
+- [x] flights table: id, tripId, userId, flightNumber, airline, departureAirport, arrivalAirport, departureTime, arrivalTime, date, leg (outbound/return/inter-island), confirmationCode, notes, sortOrder
+- [x] tRPC flights router: add, list, update, delete
+- [x] FlightTracker component: add flight form with airline, flight number, airports, times
+- [x] Flight timeline display sorted by date/time
+- [x] Inter-island flight support (Oahu → Big Island leg)
+- [x] Flights tab in TripDashboard
+- [x] Flight cards with confirmation code display
+- [x] Flights included in PDF export
+
+## Interactive Island Map
+- [x] MapView component using built-in Google Maps integration
+- [x] Plot all master itinerary items as map markers (activities, lodging, restaurants, transport)
+- [x] Color-coded markers by category (green=activity, blue=lodging, orange=dining, purple=transport)
+- [x] Island selector to switch between Oahu and Big Island views
+- [x] Click marker to see item title, description, and link
+- [x] Map tab in TripDashboard
+- [x] Auto-fit map bounds to show all markers for selected island
+- [x] Geocode item locations using Google Maps Places API

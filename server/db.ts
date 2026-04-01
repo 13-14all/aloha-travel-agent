@@ -9,12 +9,14 @@ import {
   chatMessages,
   itineraryItems,
   searchResults,
+  flights,
   InsertTrip,
   InsertTripMember,
   InsertTripInvite,
   InsertChatMessage,
   InsertItineraryItem,
   InsertSearchResult,
+  InsertFlight,
   SearchResultItem,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -318,4 +320,42 @@ export async function getSearchResults(tripId: number, category?: string, island
     .where(and(...conditions))
     .orderBy(desc(searchResults.createdAt))
     .limit(10);
+}
+
+// ─── Flights ──────────────────────────────────────────────────────────────────
+
+export async function addFlight(data: InsertFlight): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(flights).values(data);
+  return result.insertId as number;
+}
+
+export async function getFlightsByTrip(tripId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(flights)
+    .where(eq(flights.tripId, tripId))
+    .orderBy(flights.date, flights.departureTime, flights.sortOrder);
+}
+
+export async function getFlightById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(flights).where(eq(flights.id, id)).limit(1);
+  return result[0];
+}
+
+export async function updateFlight(id: number, data: Partial<InsertFlight>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(flights).set(data as any).where(eq(flights.id, id));
+}
+
+export async function deleteFlight(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(flights).where(eq(flights.id, id));
 }
