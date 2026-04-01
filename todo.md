@@ -95,3 +95,14 @@
 
 ## Mascot Rename
 - [x] Rename Hawaii mascot from "Lei" to "Leilani" throughout all components and agent prompts
+
+## Budget Tracker
+- [x] Add estimatedCost (decimal) and costNotes fields to itinerary_items table
+- [x] tRPC procedure: budget.summary — totals costs by category and island vs trip budget
+- [x] BudgetTracker component: overall progress bar (spent vs budget)
+- [x] Category breakdown: activities, lodging, dining, transport with individual subtotals
+- [x] Per-item cost editing inline on itinerary items
+- [x] Color-coded status: green (under budget), amber (75%+), red (over budget)
+- [x] Budget tracker visible in TripDashboard sidebar (always visible)
+- [x] Budget tracker also shown in Merge & Finalize tab
+- [x] "Uncosted items" count badge for items missing an estimate

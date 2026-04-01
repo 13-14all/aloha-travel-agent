@@ -8,6 +8,7 @@ import {
   json,
   boolean,
   float,
+  decimal,
 } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
@@ -168,6 +169,10 @@ export const itineraryItems = mysqlTable("itinerary_items", {
   url: text("url"),
   imageUrl: text("imageUrl"),
   notes: text("notes"),
+  /** Estimated cost in USD for this item (null = not yet estimated) */
+  estimatedCost: decimal("estimatedCost", { precision: 10, scale: 2 }),
+  /** Optional note about the cost estimate (e.g. "per person", "per night") */
+  costNotes: varchar("costNotes", { length: 128 }),
   isSaved: boolean("isSaved").default(true).notNull(),
   sortOrder: int("sortOrder").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

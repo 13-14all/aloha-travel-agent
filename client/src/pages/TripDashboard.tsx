@@ -25,6 +25,7 @@ import { TripSummaryCard } from "@/components/TripSummaryCard";
 import { FamilyMembersPanel } from "@/components/FamilyMembersPanel";
 import { MergeItinerary } from "@/components/MergeItinerary";
 import { PdfExport } from "@/components/PdfExport";
+import { BudgetTracker } from "@/components/BudgetTracker";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 
@@ -221,6 +222,11 @@ export default function TripDashboard() {
             <PlanningProgress currentStage={trip.planningStage as any} />
           </div>
           <TripSummaryCard trip={trip} />
+          <BudgetTracker
+            tripId={trip.id}
+            budgetMax={trip.budgetMax ?? null}
+            budgetMin={trip.budgetMin ?? null}
+          />
           <div className="bg-card border border-border rounded-2xl p-4">
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
               Itinerary Summary
@@ -401,6 +407,15 @@ export default function TripDashboard() {
                 <div className="flex items-center justify-between mb-4">
                   <div />
                   <PdfExport tripId={trip.id} />
+                </div>
+                {/* Compact budget summary at top of merge view */}
+                <div className="mb-6 lg:hidden">
+                  <BudgetTracker
+                    tripId={trip.id}
+                    budgetMax={trip.budgetMax ?? null}
+                    budgetMin={trip.budgetMin ?? null}
+                    compact
+                  />
                 </div>
                 <MergeItinerary tripId={trip.id} isOwner={isOwner} />
               </div>

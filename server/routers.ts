@@ -548,6 +548,8 @@ export const appRouter = router({
           notes: z.string().optional(),
           sortOrder: z.number().optional(),
           isMaster: z.boolean().optional(),
+          estimatedCost: z.number().nullable().optional(),
+          costNotes: z.string().optional(),
         })
       )
       .mutation(async ({ ctx, input }) => {
@@ -606,6 +608,73 @@ export const appRouter = router({
           members,
           byIsland,
           totalItems: masterItems.length,
+        };
+      }),
+  }),
+
+  // ─── Budget ─────────────────────────────────────────────────────────────────
+  budget: router({
+    /** Get a full budget summary: total spent vs budget, broken down by category */
+    summary: protectedProcedure
+      .input(z.object({ tripId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const { trip } = await assertTripAccess(input.tripId, ctx.user.id);
+
+        // Fetch all master itinerary items
+        const masterItems = await getItineraryItems(input.tripId, null, true);
+
+        const CATEGORIES = ["activity", "lodging", "restaurant", "transportation", "note"] as const;
+        type Category = typeof CATEGORIES[number];
+
+        const categoryTotals: Record<Category, { total: number; count: number; uncosted: number }> = {
+          activity:       { total: 0, count: 0, uncosted: 0 },
+          lodging:        { total: 0, count: 0, uncosted: 0 },
+          restaurant:     { total: 0, count: 0, uncosted: 0 },
+          transportation: { total: 0, count: 0, uncosted: 0 },
+          note:           { total: 0, count: 0, uncosted: 0 },
+        };
+
+        let grandTotal = 0;
+        let totalUncosted = 0;
+
+        for (const item of masterItems) {
+          const cat = item.category as Category;
+          categoryTotals[cat].count++;
+          const cost = item.estimatedCost ? parseFloat(String(item.estimatedCost)) : null;
+          if (cost !== null && !isNaN(cost)) {
+            categoryTotals[cat].total += cost;
+            grandTotal += cost;
+          } else {
+            categoryTotals[cat].uncosted++;
+            totalUncosted++;
+          }
+        }
+
+        const budgetMax = trip.budgetMax ?? null;
+        const budgetMin = trip.budgetMin ?? null;
+        const percentUsed = budgetMax ? Math.min((grandTotal / budgetMax) * 100, 100) : null;
+        const remaining = budgetMax ? budgetMax - grandTotal : null;
+        const isOverBudget = budgetMax ? grandTotal > budgetMax : false;
+
+        return {
+          grandTotal,
+          budgetMax,
+          budgetMin,
+          percentUsed,
+          remaining,
+          isOverBudget,
+          totalItems: masterItems.length,
+          totalUncosted,
+          categoryTotals,
+          items: masterItems.map((item) => ({
+            id: item.id,
+            title: item.title,
+            category: item.category,
+            island: item.island,
+            estimatedCost: item.estimatedCost ? parseFloat(String(item.estimatedCost)) : null,
+            costNotes: item.costNotes,
+            priceRange: item.priceRange,
+          })),
         };
       }),
   }),

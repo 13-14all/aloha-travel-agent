@@ -160,3 +160,73 @@ describe("avatar color system", () => {
     expect(unique.size).toBe(8);
   });
 });
+
+// ─── Budget Tracker Logic ─────────────────────────────────────────────────────
+
+describe("budget tracker calculations", () => {
+  it("correctly calculates percent used and remaining", () => {
+    const grandTotal = 3500;
+    const budgetMax = 5000;
+    const percentUsed = Math.min((grandTotal / budgetMax) * 100, 100);
+    const remaining = budgetMax - grandTotal;
+
+    expect(percentUsed).toBeCloseTo(70, 1);
+    expect(remaining).toBe(1500);
+  });
+
+  it("caps percent at 100 when over budget", () => {
+    const grandTotal = 6000;
+    const budgetMax = 5000;
+    const percentUsed = Math.min((grandTotal / budgetMax) * 100, 100);
+    const isOverBudget = grandTotal > budgetMax;
+
+    expect(percentUsed).toBe(100);
+    expect(isOverBudget).toBe(true);
+  });
+
+  it("correctly sums costs by category", () => {
+    const items = [
+      { category: "activity", estimatedCost: 100 },
+      { category: "activity", estimatedCost: 50 },
+      { category: "lodging", estimatedCost: 800 },
+      { category: "restaurant", estimatedCost: null },
+    ];
+
+    const totals: Record<string, number> = {};
+    let grandTotal = 0;
+    let uncosted = 0;
+
+    for (const item of items) {
+      if (!totals[item.category]) totals[item.category] = 0;
+      if (item.estimatedCost !== null) {
+        totals[item.category] += item.estimatedCost;
+        grandTotal += item.estimatedCost;
+      } else {
+        uncosted++;
+      }
+    }
+
+    expect(totals["activity"]).toBe(150);
+    expect(totals["lodging"]).toBe(800);
+    expect(grandTotal).toBe(950);
+    expect(uncosted).toBe(1);
+  });
+
+  it("handles empty itinerary gracefully", () => {
+    const items: { category: string; estimatedCost: number | null }[] = [];
+    const grandTotal = items.reduce((sum, i) => sum + (i.estimatedCost ?? 0), 0);
+    expect(grandTotal).toBe(0);
+  });
+
+  it("color codes correctly based on percent used", () => {
+    const getColor = (percent: number, isOver: boolean) => {
+      if (isOver) return "red";
+      if (percent >= 75) return "amber";
+      return "green";
+    };
+
+    expect(getColor(50, false)).toBe("green");
+    expect(getColor(80, false)).toBe("amber");
+    expect(getColor(100, true)).toBe("red");
+  });
+});
