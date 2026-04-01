@@ -138,6 +138,7 @@ interface SearchPanelProps {
   tripId: number;
   islands: string[];
   budget?: string;
+  memberId?: number | null;
 }
 
 export function SearchPanel({ tripId, islands, budget }: SearchPanelProps) {

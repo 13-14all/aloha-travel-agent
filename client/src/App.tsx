@@ -5,6 +5,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import JoinTrip from "./pages/JoinTrip";
 import TripDashboard from "./pages/TripDashboard";
 
 function Router() {
@@ -12,6 +13,7 @@ function Router() {
     <Switch>
       <Route path={"/"} component={Home} />
       <Route path={"/trip/:id"} component={TripDashboard} />
+      <Route path={"/join/:token"} component={JoinTrip} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

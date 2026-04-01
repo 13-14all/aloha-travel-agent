@@ -22,6 +22,13 @@
       "when": 1774972278332,
       "tag": "0002_magenta_veda",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1775056977747,
+      "tag": "0003_acoustic_the_twelve",
+      "breakpoints": true
     }
   ]
 }

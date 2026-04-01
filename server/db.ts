@@ -1,13 +1,17 @@
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser,
   users,
   trips,
+  tripMembers,
+  tripInvites,
   chatMessages,
   itineraryItems,
   searchResults,
   InsertTrip,
+  InsertTripMember,
+  InsertTripInvite,
   InsertChatMessage,
   InsertItineraryItem,
   InsertSearchResult,
@@ -85,7 +89,23 @@ export async function createTrip(data: InsertTrip) {
 export async function getTripsByUser(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(trips).where(eq(trips.userId, userId)).orderBy(desc(trips.updatedAt));
+  // Return trips the user owns OR is a member of
+  const owned = await db.select().from(trips).where(eq(trips.userId, userId));
+  const memberRows = await db
+    .select({ tripId: tripMembers.tripId })
+    .from(tripMembers)
+    .where(and(eq(tripMembers.userId, userId)));
+  const memberTripIds = memberRows.map((r) => r.tripId).filter((id) => !owned.find((t) => t.id === id));
+  let memberTrips: typeof owned = [];
+  if (memberTripIds.length > 0) {
+    memberTrips = await db
+      .select()
+      .from(trips)
+      .where(or(...memberTripIds.map((id) => eq(trips.id, id))));
+  }
+  return [...owned, ...memberTrips].sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  );
 }
 
 export async function getTripById(id: number) {
@@ -107,6 +127,96 @@ export async function deleteTrip(id: number) {
   await db.delete(trips).where(eq(trips.id, id));
 }
 
+// ─── Trip Members ─────────────────────────────────────────────────────────────
+
+export async function getTripMembers(tripId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(tripMembers)
+    .where(eq(tripMembers.tripId, tripId))
+    .orderBy(tripMembers.createdAt);
+}
+
+export async function getTripMemberById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(tripMembers).where(eq(tripMembers.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getTripMemberByUserId(tripId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select()
+    .from(tripMembers)
+    .where(and(eq(tripMembers.tripId, tripId), eq(tripMembers.userId, userId)))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function addTripMember(data: InsertTripMember) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(tripMembers).values(data);
+  return result.insertId as number;
+}
+
+export async function updateTripMember(id: number, data: Partial<InsertTripMember>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(tripMembers).set(data).where(eq(tripMembers.id, id));
+}
+
+export async function deleteTripMember(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(tripMembers).where(eq(tripMembers.id, id));
+}
+
+// ─── Trip Invites ─────────────────────────────────────────────────────────────
+
+export async function createInvite(data: InsertTripInvite) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(tripInvites).values(data);
+  return result.insertId as number;
+}
+
+export async function getInviteByToken(token: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(tripInvites).where(eq(tripInvites.token, token)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getInvitesByTrip(tripId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(tripInvites)
+    .where(eq(tripInvites.tripId, tripId))
+    .orderBy(desc(tripInvites.createdAt));
+}
+
+export async function acceptInvite(token: string, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(tripInvites)
+    .set({ accepted: true, acceptedByUserId: userId })
+    .where(eq(tripInvites.token, token));
+}
+
+export async function deleteInvite(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(tripInvites).where(eq(tripInvites.id, id));
+}
+
 // ─── Chat Messages ────────────────────────────────────────────────────────────
 
 export async function addChatMessage(data: InsertChatMessage) {
@@ -116,13 +226,20 @@ export async function addChatMessage(data: InsertChatMessage) {
   return result.insertId as number;
 }
 
-export async function getChatMessages(tripId: number, limit = 100) {
+export async function getChatMessages(tripId: number, memberId?: number | null, limit = 100) {
   const db = await getDb();
   if (!db) return [];
+  const conditions = [eq(chatMessages.tripId, tripId)];
+  if (memberId != null) {
+    conditions.push(eq(chatMessages.memberId, memberId));
+  } else {
+    // Trip-level chat (no specific member)
+    conditions.push(eq(chatMessages.memberId, null as any));
+  }
   return db
     .select()
     .from(chatMessages)
-    .where(eq(chatMessages.tripId, tripId))
+    .where(and(...conditions))
     .orderBy(chatMessages.createdAt)
     .limit(limit);
 }
@@ -142,14 +259,30 @@ export async function addItineraryItem(data: InsertItineraryItem) {
   return result.insertId as number;
 }
 
-export async function getItineraryItems(tripId: number) {
+export async function getItineraryItems(tripId: number, memberId?: number | null, masterOnly = false) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [eq(itineraryItems.tripId, tripId), eq(itineraryItems.isSaved, true)];
+  if (masterOnly) {
+    conditions.push(eq(itineraryItems.isMaster, true));
+  } else if (memberId != null) {
+    conditions.push(eq(itineraryItems.memberId, memberId));
+  }
+  return db
+    .select()
+    .from(itineraryItems)
+    .where(and(...conditions))
+    .orderBy(itineraryItems.sortOrder, itineraryItems.createdAt);
+}
+
+export async function getAllMemberItems(tripId: number) {
   const db = await getDb();
   if (!db) return [];
   return db
     .select()
     .from(itineraryItems)
     .where(and(eq(itineraryItems.tripId, tripId), eq(itineraryItems.isSaved, true)))
-    .orderBy(itineraryItems.sortOrder, itineraryItems.createdAt);
+    .orderBy(desc(itineraryItems.votes), itineraryItems.createdAt);
 }
 
 export async function updateItineraryItem(id: number, data: Partial<InsertItineraryItem>) {

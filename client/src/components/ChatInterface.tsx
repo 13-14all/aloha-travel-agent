@@ -111,9 +111,11 @@ function TypingIndicator({ mascotType }: { mascotType: string }) {
 interface ChatInterfaceProps {
   trip: Trip;
   onTripUpdate: () => void;
+  memberId?: number | null;
+  memberName?: string;
 }
 
-export function ChatInterface({ trip, onTripUpdate }: ChatInterfaceProps) {
+export function ChatInterface({ trip, onTripUpdate, memberId, memberName }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [latestMsgId, setLatestMsgId] = useState<number | null>(null);
@@ -122,35 +124,35 @@ export function ChatInterface({ trip, onTripUpdate }: ChatInterfaceProps) {
   const utils = trpc.useUtils();
 
   const { data: messages = [], isLoading } = trpc.chat.messages.useQuery(
-    { tripId: trip.id },
+    { tripId: trip.id, memberId: memberId ?? null },
     { refetchInterval: false }
   );
 
   const initWelcome = trpc.chat.initWelcome.useMutation({
     onSuccess: () => {
-      utils.chat.messages.invalidate({ tripId: trip.id });
+      utils.chat.messages.invalidate({ tripId: trip.id, memberId: memberId ?? null });
     },
   });
 
   const sendMessage = trpc.chat.send.useMutation({
     onSuccess: (data) => {
       setLatestMsgId(data.id);
-      utils.chat.messages.invalidate({ tripId: trip.id });
+      utils.chat.messages.invalidate({ tripId: trip.id, memberId: memberId ?? null });
       onTripUpdate();
       setIsSending(false);
     },
-    onError: (err) => {
+    onError: () => {
       toast.error("Couldn't send message. Please try again.");
       setIsSending(false);
     },
   });
 
-  // Initialize welcome message when chat is first opened
+  // Initialize welcome message when chat is first opened (per member session)
   useEffect(() => {
     if (!isLoading && messages.length === 0) {
-      initWelcome.mutate({ tripId: trip.id });
+      initWelcome.mutate({ tripId: trip.id, memberId: memberId ?? null });
     }
-  }, [isLoading, messages.length]);
+  }, [isLoading, messages.length, memberId]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -162,8 +164,8 @@ export function ChatInterface({ trip, onTripUpdate }: ChatInterfaceProps) {
     if (!text || isSending) return;
     setInput("");
     setIsSending(true);
-    sendMessage.mutate({ tripId: trip.id, message: text });
-  }, [input, isSending, trip.id]);
+    sendMessage.mutate({ tripId: trip.id, message: text, memberId: memberId ?? null });
+  }, [input, isSending, trip.id, memberId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {

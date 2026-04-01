@@ -10,7 +10,7 @@ const MASCOT_DATA: Record<string, {
 }> = {
   hula_dancer: {
     emoji: "🌺",
-    name: "Lei",
+    name: "Leilani",
     tagline: "Your Hawaii Travel Guide",
     color: "oklch(0.72 0.14 35)",
     bgColor: "oklch(0.96 0.04 35)",

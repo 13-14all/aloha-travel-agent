@@ -123,9 +123,10 @@ function ItineraryItemCard({ item, onRemove }: ItineraryItemCardProps) {
 interface ItineraryPanelProps {
   tripId: number;
   islands: string[];
+  memberId?: number | null;
 }
 
-export function ItineraryPanel({ tripId, islands }: ItineraryPanelProps) {
+export function ItineraryPanel({ tripId, islands, memberId }: ItineraryPanelProps) {
   const [filterIsland, setFilterIsland] = useState<string>("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const utils = trpc.useUtils();

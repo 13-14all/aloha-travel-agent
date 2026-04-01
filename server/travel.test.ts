@@ -66,6 +66,20 @@ vi.mock("./db", () => ({
   getSearchResults: vi.fn().mockResolvedValue([]),
   upsertUser: vi.fn().mockResolvedValue(undefined),
   getUserByOpenId: vi.fn().mockResolvedValue(undefined),
+  // New family member helpers
+  getTripMembers: vi.fn().mockResolvedValue([]),
+  getTripMemberById: vi.fn().mockResolvedValue(undefined),
+  getTripMemberByUserId: vi.fn().mockResolvedValue(undefined),
+  addTripMember: vi.fn().mockResolvedValue(5),
+  updateTripMember: vi.fn().mockResolvedValue(undefined),
+  deleteTripMember: vi.fn().mockResolvedValue(undefined),
+  createInvite: vi.fn().mockResolvedValue(undefined),
+  getInviteByToken: vi.fn().mockResolvedValue(undefined),
+  getInvitesByTrip: vi.fn().mockResolvedValue([]),
+  acceptInvite: vi.fn().mockResolvedValue(undefined),
+  deleteInvite: vi.fn().mockResolvedValue(undefined),
+  getAllMemberItems: vi.fn().mockResolvedValue([]),
+  getDb: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock("./agent", () => ({

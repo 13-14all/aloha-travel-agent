@@ -16,7 +16,7 @@ export const DESTINATION_CONFIGS: Record<string, {
     mascot: "hula_dancer",
     mascotEmoji: "🌺",
     islands: ["Oahu", "Big Island (Hawaii)", "Maui", "Kauai", "Molokai", "Lanai"],
-    greeting: "Aloha! I'm Lei, your personal Hawaii travel agent! 🌺 I'm so excited to help you plan an unforgettable Hawaiian adventure. Whether it's the vibrant shores of Oahu or the volcanic wonders of the Big Island, I'll help you discover the very best of the Aloha State.",
+    greeting: "Aloha! I'm Leilani, your personal Hawaii travel agent! 🌺 I'm so excited to help you plan an unforgettable Hawaiian adventure. Whether it's the vibrant shores of Oahu or the volcanic wonders of the Big Island, I'll help you discover the very best of the Aloha State.",
     searchTerms: ["Hawaii", "Hawaiian Islands"],
   },
   scotland: {
@@ -82,7 +82,7 @@ CURRENT TRIP CONTEXT:
 - Guest Names: ${trip.guestNames && (trip.guestNames as string[]).length > 0 ? (trip.guestNames as string[]).join(", ") : "Not specified"}
 `;
 
-  return `You are ${config.mascotEmoji} a warm, knowledgeable, and enthusiastic personal travel agent specializing in ${config.name} travel. Your name matches the destination theme. You are helping plan a real trip.
+  return `You are ${config.mascotEmoji} a warm, knowledgeable, and enthusiastic personal travel agent specializing in ${config.name} travel. Your name is ${config.name === 'Hawaii' ? 'Leilani' : config.name === 'Scotland' ? 'Angus' : config.name === 'Italy' ? 'Marco' : 'Sakura'}. You are helping plan a real trip.
 
 PERSONALITY:
 - Warm, friendly, and encouraging — like a knowledgeable friend who loves travel
@@ -188,14 +188,70 @@ export async function searchForRecommendations(
   }
 }
 
+// ─── Member-Specific System Prompt ──────────────────────────────────────────
+
+export function buildMemberSystemPrompt(
+  trip: Trip,
+  member: { name: string; planningPath: string; planningStage: string }
+): string {
+  const config = DESTINATION_CONFIGS[trip.destinationKey] || DESTINATION_CONFIGS.hawaii;
+
+  // Determine stage order based on planning path
+  const activitiesFirstOrder = ["welcome", "dates", "islands", "budget", "activities", "lodging", "transportation", "summary"];
+  const lodgingFirstOrder = ["welcome", "dates", "islands", "budget", "lodging", "transportation", "activities", "summary"];
+  const stageOrder = member.planningPath === "lodging_first" ? lodgingFirstOrder : activitiesFirstOrder;
+  const currentIndex = stageOrder.indexOf(member.planningStage);
+  const nextStage = stageOrder[currentIndex + 1] || "summary";
+
+  const stagePrompt = STAGE_PROMPTS[member.planningStage] || STAGE_PROMPTS.welcome;
+
+  const tripContext = `
+CURRENT TRIP CONTEXT:
+- Destination: ${trip.destination}
+- Planning Stage: ${member.planningStage} (${member.name}'s personal planning path: ${member.planningPath === "lodging_first" ? "Lodging First" : "Activities First"})
+- Travel Dates: ${trip.startDate && trip.endDate ? `${trip.startDate} to ${trip.endDate}` : "Not yet set"}
+- Selected Islands: ${trip.islands && (trip.islands as string[]).length > 0 ? (trip.islands as string[]).join(", ") : "Not yet selected"}
+- Budget Range: ${trip.budgetMin && trip.budgetMax ? `$${trip.budgetMin.toLocaleString()} - $${trip.budgetMax.toLocaleString()}` : "Not yet set"}
+- Planning for: ${member.name}
+- Path order: ${stageOrder.join(" → ")}
+`;
+
+  return `You are ${config.mascotEmoji} a warm, knowledgeable, and enthusiastic personal travel agent specializing in ${config.name} travel. Your name is ${config.name === 'Hawaii' ? 'Leilani' : config.name === 'Scotland' ? 'Angus' : config.name === 'Italy' ? 'Marco' : 'Sakura'}. You are helping ${member.name} plan their portion of a family trip.
+
+PERSONALITY:
+- Warm, friendly, and encouraging — like a knowledgeable friend who loves travel
+- Use simple, clear language — this app is used by people of all ages including elderly users
+- Be specific and helpful with real recommendations, not generic advice
+- Show genuine excitement about the destination
+- Keep responses focused and not too long — elderly users appreciate clarity
+- Use occasional relevant emojis to make responses feel friendly and visual
+- Address ${member.name} by name occasionally to keep it personal
+
+${tripContext}
+
+CURRENT STAGE INSTRUCTIONS:
+${stagePrompt}
+
+IMPORTANT: ${member.name} has chosen the "${member.planningPath === "lodging_first" ? "Lodging First" : "Activities First"}" planning path. Follow this order: ${stageOrder.join(" → ")}. The next stage after this one will be: ${nextStage}.
+
+When you have search results to share, format them clearly with:
+- **Name** of the place/activity
+- Brief description (1-2 sentences)
+- Why it's special or unique
+- Approximate cost if known`;
+}
+
 // ─── Chat with AI ─────────────────────────────────────────────────────────────
 
 export async function chatWithAgent(
   trip: Trip,
   messages: ChatMessage[],
-  userMessage: string
+  userMessage: string,
+  member?: { name: string; planningPath: string; planningStage: string } | null
 ): Promise<string> {
-  const systemPrompt = buildSystemPrompt(trip);
+  const systemPrompt = member
+    ? buildMemberSystemPrompt(trip, member)
+    : buildSystemPrompt(trip);
 
   // Build conversation history (last 20 messages for context)
   const history = messages.slice(-20).map((m) => ({

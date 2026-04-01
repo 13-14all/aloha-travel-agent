@@ -54,3 +54,44 @@
 - [x] Large tap targets (buttons 48px+)
 - [x] Minimal cognitive load layout
 - [x] Helpful tooltips and guidance text
+
+## Family Members & Permissions
+- [x] Database: trip_members table (name, email, role, planning path, avatar color)
+- [x] Roles: owner (full control), planner (can add/edit), viewer (read-only — grandkids)
+- [x] Family member onboarding form on trip creation / trip settings
+- [x] Planning path selection per member: activities-first OR lodging-first
+- [x] Member profile cards showing name, role, path, and contribution count
+- [x] Permission enforcement: viewers cannot add/edit/delete itinerary items
+- [x] Trip owner can change member roles at any time
+
+## Individual Planning Paths
+- [x] Activities-first path: dates → islands → budget → activities → restaurants → lodging → transport
+- [x] Lodging-first path: dates → islands → budget → lodging → transport → activities → restaurants
+- [x] Each member gets their own AI chat session with their chosen path
+- [x] Each member's saved items are tagged with their name
+- [x] Visual indicator on itinerary items showing which member saved them
+
+## Collaborative Merge & Finalization
+- [x] Merge view: side-by-side comparison of each member's saved items
+- [x] Voting/approval system: members can upvote items to surface the best picks
+- [x] Finalize button: owner merges selected items into the master itinerary
+- [x] Conflict resolution: flag duplicate lodging/activity picks
+- [x] Final itinerary view: combined, organized, ready to export
+
+## PDF Export
+- [x] Export full itinerary to PDF (day-by-day, organized by island)
+- [x] Include trip details: dates, islands, budget, travelers
+- [x] Include each item: title, description, location, price, URL
+- [x] Branded with mascot and trip title
+- [x] Download button on itinerary tab
+
+## Invite System
+- [x] Generate shareable invite link per trip (with role pre-set)
+- [x] Invite link encodes trip ID + role + expiry token
+- [x] Invite acceptance page: enter name, choose planning path, join trip
+- [x] Email invite option (copy-to-clipboard link)
+- [x] Pending invites list in trip settings
+- [x] Revoke invite links
+
+## Mascot Rename
+- [x] Rename Hawaii mascot from "Lei" to "Leilani" throughout all components and agent prompts
