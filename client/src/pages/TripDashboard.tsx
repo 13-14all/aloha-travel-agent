@@ -15,6 +15,7 @@ import {
   Crown,
   Plane,
   Map,
+  CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
@@ -30,10 +31,11 @@ import { PdfExport } from "@/components/PdfExport";
 import { BudgetTracker } from "@/components/BudgetTracker";
 import { FlightTracker } from "@/components/FlightTracker";
 import { IslandMapView } from "@/components/IslandMapView";
+import { ItineraryBuilder } from "@/components/ItineraryBuilder";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 
-type TabType = "chat" | "search" | "itinerary" | "family" | "merge" | "flights" | "map";
+type TabType = "chat" | "search" | "itinerary" | "family" | "merge" | "flights" | "map" | "schedule";
 
 export default function TripDashboard() {
   const [, params] = useRoute("/trip/:id");
@@ -128,6 +130,7 @@ export default function TripDashboard() {
     { key: "merge", label: "Merge & Finalize", icon: <GitMerge className="w-5 h-5" />, ownerOnly: false },
     { key: "flights", label: "Flights", icon: <Plane className="w-5 h-5" /> },
     { key: "map", label: "Island Map", icon: <Map className="w-5 h-5" /> },
+    { key: "schedule", label: "Day Schedule", icon: <CalendarDays className="w-5 h-5" /> },
   ];
 
   return (
@@ -439,6 +442,12 @@ export default function TripDashboard() {
                   tripId={trip.id}
                   islands={trip.islands as string[] ?? []}
                 />
+              </div>
+            )}
+
+            {activeTab === "schedule" && (
+              <div className="p-4 sm:p-6 overflow-y-auto" style={{ minHeight: "600px" }}>
+                <ItineraryBuilder tripId={trip.id} />
               </div>
             )}
           </div>

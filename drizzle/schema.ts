@@ -173,6 +173,12 @@ export const itineraryItems = mysqlTable("itinerary_items", {
   estimatedCost: decimal("estimatedCost", { precision: 10, scale: 2 }),
   /** Optional note about the cost estimate (e.g. "per person", "per night") */
   costNotes: varchar("costNotes", { length: 128 }),
+  /** Day number within the trip (1 = first day, null = unscheduled) */
+  scheduledDay: int("scheduledDay"),
+  /** Time of day for this item in HH:MM format (null = unspecified) */
+  scheduledTime: varchar("scheduledTime", { length: 8 }),
+  /** Custom label for this day (e.g. "Arrival Day", "North Shore Adventure") */
+  dayLabel: varchar("dayLabel", { length: 128 }),
   isSaved: boolean("isSaved").default(true).notNull(),
   sortOrder: int("sortOrder").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

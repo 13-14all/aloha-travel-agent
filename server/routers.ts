@@ -806,6 +806,144 @@ export const appRouter = router({
       }),
   }),
 
+  // ─── Schedule / Day Builder ─────────────────────────────────────────────────
+  schedule: router({
+    /**
+     * Returns all master itinerary items for a trip, grouped by day.
+     * Day 0 = unscheduled. Days 1..N = trip days in order.
+     * Also returns trip date range so the UI can label each day.
+     */
+    getDays: protectedProcedure
+      .input(z.object({ tripId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        await assertTripAccess(input.tripId, ctx.user.id);
+        const items = await getItineraryItems(input.tripId, null, true);
+        const trip = await getTripById(input.tripId);
+
+        // Build trip day list from startDate → endDate
+        const days: { dayNumber: number; date: string | null; label: string | null; island: string | null }[] = [];
+        if (trip?.startDate && trip?.endDate) {
+          const start = new Date(trip.startDate);
+          const end = new Date(trip.endDate);
+          let current = new Date(start);
+          let dayNum = 1;
+          while (current <= end) {
+            days.push({
+              dayNumber: dayNum,
+              date: current.toISOString().split("T")[0],
+              label: null,
+              island: null,
+            });
+            current.setDate(current.getDate() + 1);
+            dayNum++;
+          }
+        }
+
+        // Collect custom day labels from items
+        const labelMap: Record<number, string> = {};
+        for (const item of items) {
+          if (item.scheduledDay && item.dayLabel) {
+            labelMap[item.scheduledDay] = item.dayLabel;
+          }
+        }
+        days.forEach((d) => {
+          if (labelMap[d.dayNumber]) d.label = labelMap[d.dayNumber];
+        });
+
+        // Assign islands to days based on trip islands array
+        const islands = (trip?.islands as string[]) ?? [];
+        if (islands.length === 2 && days.length > 0) {
+          // Split days roughly in half between the two islands
+          const half = Math.floor(days.length / 2);
+          days.forEach((d, i) => {
+            d.island = i < half ? islands[0] : islands[1];
+          });
+        } else if (islands.length === 1) {
+          days.forEach((d) => (d.island = islands[0]));
+        }
+
+        return {
+          days,
+          items: items.map((item) => ({
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            location: item.location,
+            island: item.island,
+            category: item.category,
+            timeOfDay: item.timeOfDay,
+            priceRange: item.priceRange,
+            estimatedCost: item.estimatedCost ? parseFloat(item.estimatedCost as unknown as string) : null,
+            url: item.url,
+            scheduledDay: item.scheduledDay ?? null,
+            scheduledTime: item.scheduledTime ?? null,
+            dayLabel: item.dayLabel ?? null,
+            sortOrder: item.sortOrder,
+          })),
+          tripStartDate: trip?.startDate ?? null,
+          tripEndDate: trip?.endDate ?? null,
+        };
+      }),
+
+    /** Assign an item to a specific day and optional time */
+    assign: protectedProcedure
+      .input(z.object({
+        itemId: z.number(),
+        tripId: z.number(),
+        scheduledDay: z.number().nullable(),
+        scheduledTime: z.string().nullable().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await assertTripAccess(input.tripId, ctx.user.id, "planner");
+        await updateItineraryItem(input.itemId, {
+          scheduledDay: input.scheduledDay ?? undefined,
+          scheduledTime: input.scheduledTime ?? undefined,
+        });
+        return { success: true };
+      }),
+
+    /** Remove an item from its scheduled day (move back to unscheduled pool) */
+    unschedule: protectedProcedure
+      .input(z.object({ itemId: z.number(), tripId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        await assertTripAccess(input.tripId, ctx.user.id, "planner");
+        // Set scheduledDay and scheduledTime to null via raw update
+        const db = await (await import("./db")).getDb();
+        if (db) {
+          const { itineraryItems } = await import("../drizzle/schema");
+          const { eq } = await import("drizzle-orm");
+          await db.update(itineraryItems)
+            .set({ scheduledDay: null, scheduledTime: null })
+            .where(eq(itineraryItems.id, input.itemId));
+        }
+        return { success: true };
+      }),
+
+    /** Update the custom label for a day (e.g. "North Shore Adventure") */
+    updateDayLabel: protectedProcedure
+      .input(z.object({
+        tripId: z.number(),
+        dayNumber: z.number(),
+        label: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await assertTripAccess(input.tripId, ctx.user.id, "planner");
+        // Update all items on this day to carry the new label
+        const db = await (await import("./db")).getDb();
+        if (db) {
+          const { itineraryItems } = await import("../drizzle/schema");
+          const { eq, and } = await import("drizzle-orm");
+          await db.update(itineraryItems)
+            .set({ dayLabel: input.label })
+            .where(and(
+              eq(itineraryItems.tripId, input.tripId),
+              eq(itineraryItems.scheduledDay, input.dayNumber)
+            ));
+        }
+        return { success: true };
+      }),
+  }),
+
   // ─── Map Data ───────────────────────────────────────────────────────────────
   map: router({
     /** Returns all master itinerary items with location data for map plotting */

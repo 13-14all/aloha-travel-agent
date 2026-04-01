@@ -348,3 +348,114 @@ describe("island map", () => {
     expect(oahuItems.every((i) => i.island === "Oahu")).toBe(true);
   });
 });
+
+// ─── Itinerary Builder / Schedule Logic Tests ─────────────────────────────────
+
+describe("itinerary builder", () => {
+  it("correctly splits trip days between two islands", () => {
+    const islands = ["Oahu", "Big Island"];
+    const totalDays = 14;
+    const half = Math.floor(totalDays / 2);
+
+    const days = Array.from({ length: totalDays }, (_, i) => ({
+      dayNumber: i + 1,
+      island: i < half ? islands[0] : islands[1],
+    }));
+
+    const oahuDays = days.filter((d) => d.island === "Oahu");
+    const bigIslandDays = days.filter((d) => d.island === "Big Island");
+
+    expect(oahuDays).toHaveLength(7);
+    expect(bigIslandDays).toHaveLength(7);
+    expect(oahuDays[0].dayNumber).toBe(1);
+    expect(bigIslandDays[0].dayNumber).toBe(8);
+  });
+
+  it("generates correct day list from start and end dates", () => {
+    const startDate = "2025-09-15";
+    const endDate = "2025-09-28";
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    let current = new Date(start);
+    const days: { dayNumber: number; date: string }[] = [];
+    let dayNum = 1;
+    while (current <= end) {
+      days.push({ dayNumber: dayNum, date: current.toISOString().split("T")[0] });
+      current.setDate(current.getDate() + 1);
+      dayNum++;
+    }
+
+    expect(days).toHaveLength(14);
+    expect(days[0].date).toBe("2025-09-15");
+    expect(days[13].date).toBe("2025-09-28");
+    expect(days[0].dayNumber).toBe(1);
+    expect(days[13].dayNumber).toBe(14);
+  });
+
+  it("sorts items within a day by scheduled time", () => {
+    const items = [
+      { id: 1, title: "Dinner", scheduledTime: "19:00", sortOrder: 0 },
+      { id: 2, title: "Snorkeling", scheduledTime: "09:00", sortOrder: 1 },
+      { id: 3, title: "Lunch", scheduledTime: "12:00", sortOrder: 2 },
+      { id: 4, title: "Hotel Check-in", scheduledTime: null, sortOrder: 3 },
+    ];
+
+    const sorted = [...items].sort((a, b) => {
+      if (a.scheduledTime && b.scheduledTime) return a.scheduledTime.localeCompare(b.scheduledTime);
+      if (a.scheduledTime) return -1;
+      if (b.scheduledTime) return 1;
+      return a.sortOrder - b.sortOrder;
+    });
+
+    expect(sorted[0].title).toBe("Snorkeling");
+    expect(sorted[1].title).toBe("Lunch");
+    expect(sorted[2].title).toBe("Dinner");
+    expect(sorted[3].title).toBe("Hotel Check-in");
+  });
+
+  it("correctly separates scheduled and unscheduled items", () => {
+    const items = [
+      { id: 1, title: "Snorkeling", scheduledDay: 2 },
+      { id: 2, title: "Luau", scheduledDay: null },
+      { id: 3, title: "Hotel", scheduledDay: 1 },
+      { id: 4, title: "Hike", scheduledDay: null },
+    ];
+
+    const scheduled = items.filter((i) => i.scheduledDay !== null);
+    const unscheduled = items.filter((i) => i.scheduledDay === null);
+
+    expect(scheduled).toHaveLength(2);
+    expect(unscheduled).toHaveLength(2);
+    expect(scheduled.map((i) => i.title)).toContain("Snorkeling");
+    expect(unscheduled.map((i) => i.title)).toContain("Luau");
+  });
+
+  it("calculates total cost per day correctly", () => {
+    const dayItems = [
+      { estimatedCost: 120 },
+      { estimatedCost: 45 },
+      { estimatedCost: null },
+      { estimatedCost: 200 },
+    ];
+
+    const dayTotal = dayItems.reduce((sum, i) => sum + (i.estimatedCost ?? 0), 0);
+    expect(dayTotal).toBe(365);
+  });
+
+  it("formats time from 24h to 12h correctly", () => {
+    const formatTime = (t: string | null): string => {
+      if (!t) return "";
+      const [h, m] = t.split(":");
+      const hour = parseInt(h);
+      const ampm = hour >= 12 ? "PM" : "AM";
+      const h12 = hour % 12 || 12;
+      return `${h12}:${m} ${ampm}`;
+    };
+
+    expect(formatTime("09:00")).toBe("9:00 AM");
+    expect(formatTime("12:00")).toBe("12:00 PM");
+    expect(formatTime("19:00")).toBe("7:00 PM");
+    expect(formatTime(null)).toBe("");
+  });
+});

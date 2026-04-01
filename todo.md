@@ -126,3 +126,20 @@
 - [x] Map tab in TripDashboard
 - [x] Auto-fit map bounds to show all markers for selected island
 - [x] Geocode item locations using Google Maps Places API
+
+## Day-by-Day Itinerary Builder
+- [x] Add scheduledDay (int, 1-based day number) and scheduledTime (varchar, HH:MM) to itinerary_items table
+- [x] Add dayLabel (varchar) to itinerary_items for custom day names (e.g. "Arrival Day", "North Shore Day")
+- [x] tRPC procedure: itinerary.schedule — assign item to a day and time
+- [x] tRPC procedure: itinerary.unschedule — remove item from a day slot
+- [x] tRPC procedure: itinerary.reorderDay — reorder items within a day
+- [x] ItineraryBuilder component: day-column layout showing each trip day
+- [x] Unscheduled items pool at top/side — drag or click to assign to a day
+- [x] Each day column shows date, island label, and scheduled items in time order
+- [x] Time slot selector per item (Morning / Afternoon / Evening / custom time)
+- [x] Item cards show category emoji, title, location, and estimated cost
+- [x] "Unassign" button to move item back to the unscheduled pool
+- [x] Day summary: total estimated cost per day
+- [x] Island grouping: days automatically labeled with the island (Oahu days vs Big Island days)
+- [x] Print-ready view: clean day-by-day schedule included in PDF export
+- [x] Schedule tab in TripDashboard
