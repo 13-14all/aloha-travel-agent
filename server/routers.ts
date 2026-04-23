@@ -37,6 +37,9 @@ import {
   getFlightById,
   updateFlight,
   deleteFlight,
+  createChangeRequest,
+  getChangeRequests,
+  updateChangeRequest,
 } from "./db";
 import { chatWithAgent, extractTripData, searchForRecommendations, DESTINATION_CONFIGS } from "./agent";
 
@@ -966,6 +969,56 @@ export const appRouter = router({
           priceRange: item.priceRange,
           timeOfDay: item.timeOfDay,
         }));
+      }),
+  }),
+
+  // ─── Admin: Change Requests ──────────────────────────────────────────────────────
+  feedback: router({
+    /** Submit a new change request (any authenticated user) */
+    submit: protectedProcedure
+      .input(z.object({
+        title: z.string().min(3).max(256),
+        description: z.string().min(5),
+        priority: z.enum(["low", "medium", "high"]).default("medium"),
+        category: z.enum(["bug", "feature", "improvement", "question"]).default("feature"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const id = await createChangeRequest({
+          userId: ctx.user.id,
+          userName: ctx.user.name ?? undefined,
+          title: input.title,
+          description: input.description,
+          priority: input.priority,
+          category: input.category,
+        });
+        return { id };
+      }),
+
+    /** List all change requests — admin only */
+    list: protectedProcedure
+      .query(async ({ ctx }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Admin only" });
+        }
+        return getChangeRequests();
+      }),
+
+    /** Update status or add admin notes — admin only */
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        status: z.enum(["pending", "in-progress", "done", "wont-do"]).optional(),
+        adminNotes: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Admin only" });
+        }
+        await updateChangeRequest(input.id, {
+          status: input.status,
+          adminNotes: input.adminNotes,
+        });
+        return { success: true };
       }),
   }),
 });

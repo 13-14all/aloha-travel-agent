@@ -359,3 +359,49 @@ export async function deleteFlight(id: number) {
   if (!db) throw new Error("Database not available");
   await db.delete(flights).where(eq(flights.id, id));
 }
+
+// ─── Change Requests ──────────────────────────────────────────────────────────
+
+export async function createChangeRequest(data: {
+  userId: number;
+  userName?: string;
+  title: string;
+  description: string;
+  priority: "low" | "medium" | "high";
+  category: "bug" | "feature" | "improvement" | "question";
+}): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { changeRequests } = await import("../drizzle/schema");
+  const result = await db.insert(changeRequests).values({
+    userId: data.userId,
+    userName: data.userName,
+    title: data.title,
+    description: data.description,
+    priority: data.priority,
+    category: data.category,
+  });
+  return (result[0] as any).insertId as number;
+}
+
+export async function getChangeRequests() {
+  const db = await getDb();
+  if (!db) return [];
+  const { changeRequests } = await import("../drizzle/schema");
+  const { desc } = await import("drizzle-orm");
+  return db.select().from(changeRequests).orderBy(desc(changeRequests.createdAt));
+}
+
+export async function updateChangeRequest(
+  id: number,
+  data: {
+    status?: "pending" | "in-progress" | "done" | "wont-do";
+    adminNotes?: string;
+  }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { changeRequests } = await import("../drizzle/schema");
+  const { eq } = await import("drizzle-orm");
+  await db.update(changeRequests).set(data).where(eq(changeRequests.id, id));
+}

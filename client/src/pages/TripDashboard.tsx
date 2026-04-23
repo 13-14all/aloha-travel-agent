@@ -34,6 +34,7 @@ import { IslandMapView } from "@/components/IslandMapView";
 import { ItineraryBuilder } from "@/components/ItineraryBuilder";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
+import { HelpButton } from "@/components/HelpButton";
 
 type TabType = "chat" | "search" | "itinerary" | "family" | "merge" | "flights" | "map" | "schedule";
 
@@ -165,6 +166,20 @@ export default function TripDashboard() {
                 <Users className="w-3.5 h-3.5 text-muted-foreground" />
                 <span className="text-muted-foreground font-medium">{members.length} members</span>
               </div>
+            )}
+
+            {/* Help button */}
+            <HelpButton compact />
+
+            {/* Admin: Suggest a Change */}
+            {user?.role === "admin" && (
+              <button
+                onClick={() => window.open("/admin/feedback", "aloha_feedback", "width=760,height=820,scrollbars=yes,resizable=yes,toolbar=no,menubar=no")}
+                title="Suggest a change or report a bug"
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-700 transition-colors shrink-0"
+              >
+                🛠️
+              </button>
             )}
 
             <Button

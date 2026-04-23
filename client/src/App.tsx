@@ -7,6 +7,8 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import JoinTrip from "./pages/JoinTrip";
 import TripDashboard from "./pages/TripDashboard";
+import HowItWorks from "./pages/HowItWorks";
+import AdminFeedback from "./pages/AdminFeedback";
 
 function Router() {
   return (
@@ -14,6 +16,10 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/trip/:id"} component={TripDashboard} />
       <Route path={"/join/:token"} component={JoinTrip} />
+      {/* Help page — opens in new window, also accessible directly */}
+      <Route path={"/help"} component={HowItWorks} />
+      {/* Admin change request window */}
+      <Route path={"/admin/feedback"} component={AdminFeedback} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

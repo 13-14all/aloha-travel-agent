@@ -143,3 +143,20 @@
 - [x] Island grouping: days automatically labeled with the island (Oahu days vs Big Island days)
 - [x] Print-ready view: clean day-by-day schedule included in PDF export
 - [x] Schedule tab in TripDashboard
+
+## How This Works — Help Page
+- [x] HowItWorks page at /help — full quick-reference guide, easy to read, large text
+- [x] First-run detection using localStorage — auto-opens on first visit ever
+- [x] "How This Works" button on every page header — opens /help in a new window
+- [x] Content sections: Welcome, Chat with Leilani, Trip Planning Steps, Family Members & Roles, Budget Tracker, Flights, Map, Day Schedule, Tips for Elderly Users
+- [x] Content stays current — structured so it can be updated as features are added
+- [x] Clean print-friendly layout (can be printed as a reference sheet)
+
+## Admin Change Request Window
+- [x] Admin-only "Suggest a Change" button visible only to owner/admin role users
+- [x] Opens /admin/feedback in a new browser window (never interrupts current session)
+- [x] Change request form: title, description, priority (low/medium/high), category (bug/feature/improvement)
+- [x] Submitted requests stored in DB (change_requests table)
+- [x] Request history list: shows all past requests with status (pending/in-progress/done)
+- [x] Admin can mark requests as done or add notes
+- [x] Only users with role=admin or trip owner can access this page

@@ -255,3 +255,29 @@ export const flights = mysqlTable("flights", {
 
 export type Flight = typeof flights.$inferSelect;
 export type InsertFlight = typeof flights.$inferInsert;
+
+// ─── Change Requests (Admin Feedback) ────────────────────────────────────────
+
+export const changeRequests = mysqlTable("change_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  /** User who submitted the request */
+  userId: int("userId").notNull(),
+  userName: varchar("userName", { length: 128 }),
+  /** Short title for the request */
+  title: varchar("title", { length: 256 }).notNull(),
+  /** Full description of the change or bug */
+  description: text("description").notNull(),
+  /** How urgent/important this is */
+  priority: mysqlEnum("priority", ["low", "medium", "high"]).default("medium").notNull(),
+  /** What kind of change this is */
+  category: mysqlEnum("category", ["bug", "feature", "improvement", "question"]).default("feature").notNull(),
+  /** Current status of the request */
+  status: mysqlEnum("status", ["pending", "in-progress", "done", "wont-do"]).default("pending").notNull(),
+  /** Optional admin notes / response */
+  adminNotes: text("adminNotes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ChangeRequest = typeof changeRequests.$inferSelect;
+export type InsertChangeRequest = typeof changeRequests.$inferInsert;

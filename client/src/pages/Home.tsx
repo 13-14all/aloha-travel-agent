@@ -16,6 +16,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { TripCard } from "@/components/TripCard";
 import { Mascot } from "@/components/Mascot";
+import { HelpButton } from "@/components/HelpButton";
 import { toast } from "sonner";
 
 const DESTINATION_TEMPLATES = [
@@ -118,33 +119,52 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Auth */}
-          {authLoading ? (
-            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-          ) : user ? (
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground hidden sm:block">
-                Welcome, <strong className="text-foreground">{user.name || "Traveler"}</strong>
-              </span>
+          {/* Nav actions */}
+          <div className="flex items-center gap-2">
+            {/* Help button — always visible */}
+            <HelpButton />
+
+            {/* Admin: Suggest a Change */}
+            {user?.role === "admin" && (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={logout}
-                className="text-sm"
+                onClick={() => window.open("/admin/feedback", "aloha_feedback", "width=760,height=820,scrollbars=yes,resizable=yes,toolbar=no,menubar=no")}
+                className="gap-2 h-10 text-base border-amber-300 text-amber-700 hover:bg-amber-50 hidden sm:flex"
+                title="Open the change request panel in a new window"
               >
-                <LogOut className="w-4 h-4 mr-1.5" />
-                Sign Out
+                🛠️ <span className="hidden md:inline">Suggest a Change</span>
               </Button>
-            </div>
-          ) : (
-            <Button
-              onClick={() => (window.location.href = getLoginUrl())}
-              className="gradient-tropical text-white border-0 shadow-md"
-            >
-              <LogIn className="w-4 h-4 mr-2" />
-              Sign In to Start
-            </Button>
-          )}
+            )}
+
+            {/* Auth */}
+            {authLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            ) : user ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground hidden lg:block">
+                  Welcome, <strong className="text-foreground">{user.name || "Traveler"}</strong>
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={logout}
+                  className="text-sm h-10"
+                >
+                  <LogOut className="w-4 h-4 mr-1.5" />
+                  Sign Out
+                </Button>
+              </div>
+            ) : (
+              <Button
+                onClick={() => (window.location.href = getLoginUrl())}
+                className="gradient-tropical text-white border-0 shadow-md"
+              >
+                <LogIn className="w-4 h-4 mr-2" />
+                Sign In to Start
+              </Button>
+            )}
+          </div>
         </div>
       </nav>
 

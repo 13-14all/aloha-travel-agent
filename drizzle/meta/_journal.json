@@ -50,6 +50,13 @@
       "when": 1775065896999,
       "tag": "0006_furry_paibok",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1776954750064,
+      "tag": "0007_watery_killmonger",
+      "breakpoints": true
     }
   ]
 }
