@@ -405,3 +405,15 @@ export async function updateChangeRequest(
   const { eq } = await import("drizzle-orm");
   await db.update(changeRequests).set(data).where(eq(changeRequests.id, id));
 }
+
+export async function getUserChangeRequests(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const { changeRequests } = await import("../drizzle/schema");
+  const { eq, desc } = await import("drizzle-orm");
+  return db
+    .select()
+    .from(changeRequests)
+    .where(eq(changeRequests.userId, userId))
+    .orderBy(desc(changeRequests.createdAt));
+}

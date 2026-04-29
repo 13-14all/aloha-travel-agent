@@ -171,11 +171,11 @@ export default function TripDashboard() {
             {/* Help button */}
             <HelpButton compact />
 
-            {/* Admin: Suggest a Change */}
-            {user?.role === "admin" && (
+            {/* Suggest a Change — visible to all logged-in users */}
+            {user && (
               <button
                 onClick={() => window.open("/admin/feedback", "aloha_feedback", "width=760,height=820,scrollbars=yes,resizable=yes,toolbar=no,menubar=no")}
-                title="Suggest a change or report a bug"
+                title="Suggest a change or report an issue"
                 className="flex items-center justify-center w-10 h-10 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-700 transition-colors shrink-0"
               >
                 🛠️

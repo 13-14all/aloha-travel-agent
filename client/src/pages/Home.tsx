@@ -124,14 +124,14 @@ export default function Home() {
             {/* Help button — always visible */}
             <HelpButton />
 
-            {/* Admin: Suggest a Change */}
-            {user?.role === "admin" && (
+            {/* Suggest a Change — visible to all logged-in users */}
+            {user && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => window.open("/admin/feedback", "aloha_feedback", "width=760,height=820,scrollbars=yes,resizable=yes,toolbar=no,menubar=no")}
                 className="gap-2 h-10 text-base border-amber-300 text-amber-700 hover:bg-amber-50 hidden sm:flex"
-                title="Open the change request panel in a new window"
+                title="Suggest a change or report an issue"
               >
                 🛠️ <span className="hidden md:inline">Suggest a Change</span>
               </Button>

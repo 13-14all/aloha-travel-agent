@@ -40,6 +40,7 @@ import {
   createChangeRequest,
   getChangeRequests,
   updateChangeRequest,
+  getUserChangeRequests,
 } from "./db";
 import { chatWithAgent, extractTripData, searchForRecommendations, DESTINATION_CONFIGS } from "./agent";
 
@@ -75,7 +76,19 @@ const AVATAR_COLORS = [
 export const appRouter = router({
   system: systemRouter,
   auth: router({
-    me: publicProcedure.query((opts) => opts.ctx.user),
+    me: publicProcedure.query(opts => opts.ctx.user),
+
+    /** Mark the current user as having seen their welcome page */
+    markWelcomed: protectedProcedure.mutation(async ({ ctx }) => {
+      const { drizzle } = await import("drizzle-orm/mysql2");
+      if (!process.env.DATABASE_URL) return { success: false };
+      const db = drizzle(process.env.DATABASE_URL);
+      const { users } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      await db.update(users).set({ hasSeenWelcome: true }).where(eq(users.id, ctx.user.id));
+      return { success: true };
+    }),
+
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
@@ -1019,6 +1032,12 @@ export const appRouter = router({
           adminNotes: input.adminNotes,
         });
         return { success: true };
+      }),
+
+    /** List only the current user's own submissions */
+    myList: protectedProcedure
+      .query(async ({ ctx }) => {
+        return getUserChangeRequests(ctx.user.id);
       }),
   }),
 });

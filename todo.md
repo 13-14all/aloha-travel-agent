@@ -160,3 +160,19 @@
 - [x] Request history list: shows all past requests with status (pending/in-progress/done)
 - [x] Admin can mark requests as done or add notes
 - [x] Only users with role=admin or trip owner can access this page
+
+## Suggest a Change — Open to All Users
+- [x] Show "Suggest a Change" button to ALL logged-in users (not just admins)
+- [x] Non-admins: can submit requests, see only their own submissions
+- [x] Admins (Alex, Tami): see all submissions, manage status, add notes
+- [x] AdminFeedback page enforces this split view based on role
+
+## First-Login Welcome Pages
+- [x] DB: add hasSeenWelcome flag to users table
+- [x] auth.markWelcomed tRPC mutation — sets hasSeenWelcome = true
+- [x] WelcomeGuard in App.tsx — detects first login and redirects
+- [x] WelcomeTami page (/welcome/tami) — personalized surprise gift message, placeholder content
+- [x] WelcomeGuest page (/welcome/guest) — warm greeting for friends & family, placeholder content
+- [x] Logic: if user.name contains "tami" → /welcome/tami; else → /welcome/guest
+- [x] Both pages: large text, warm tropical design, "Let's Start Planning" CTA button
+- [x] Footer note: will become "thank you for your purchase" if marketed

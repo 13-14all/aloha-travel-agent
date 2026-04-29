@@ -328,6 +328,12 @@ export default function AdminFeedback() {
     { enabled: isAdmin }
   );
 
+  // Non-admins see their own submissions
+  const { data: myRequests, isLoading: loadingMyRequests } = trpc.feedback.myList.useQuery(
+    undefined,
+    { enabled: !isAdmin && isAuthenticated }
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -458,12 +464,44 @@ export default function AdminFeedback() {
           </div>
         )}
 
-        {/* Non-admin: show a note that requests are being reviewed */}
+        {/* Non-admin: show their own submissions */}
         {!isAdmin && (
-          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 text-center">
-            <AlertCircle className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-            <p className="text-base text-blue-800 font-medium">Your requests go directly to Alex and Tami.</p>
-            <p className="text-sm text-blue-700 mt-1">They review all submissions and will update the app accordingly.</p>
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-base text-blue-800 font-medium">Your requests go directly to Alex and Tami.</p>
+                <p className="text-sm text-blue-700 mt-0.5">They review all submissions and will update the app accordingly.</p>
+              </div>
+            </div>
+
+            {/* My submitted requests */}
+            <h2 className="text-lg font-bold text-foreground">My Submissions</h2>
+            {loadingMyRequests ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
+            ) : !myRequests || myRequests.length === 0 ? (
+              <div className="text-center py-8 bg-card border border-border rounded-2xl">
+                <div className="text-3xl mb-2">📬</div>
+                <p className="text-muted-foreground">No submissions yet — use the form above to send your first idea!</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {myRequests.map((req) => (
+                  <RequestCard
+                    key={req.id}
+                    req={{
+                      ...req,
+                      priority: req.priority as "low" | "medium" | "high",
+                      category: req.category as "bug" | "feature" | "improvement" | "question",
+                      status: req.status as "pending" | "in-progress" | "done" | "wont-do",
+                    }}
+                    isAdmin={false}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
