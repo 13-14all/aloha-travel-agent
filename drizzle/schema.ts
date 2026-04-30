@@ -19,6 +19,10 @@ export const users = mysqlTable("users", {
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   hasSeenWelcome: boolean("hasSeenWelcome").default(false).notNull(),
+  /** Friendly display name chosen by the user on first sign-in — shown everywhere in the app */
+  displayName: varchar("displayName", { length: 64 }),
+  /** True once the user has explicitly chosen their display name */
+  hasChosenName: boolean("hasChosenName").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

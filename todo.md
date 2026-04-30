@@ -176,3 +176,18 @@
 - [x] Logic: if user.name contains "tami" → /welcome/tami; else → /welcome/guest
 - [x] Both pages: large text, warm tropical design, "Let's Start Planning" CTA button
 - [x] Footer note: will become "thank you for your purchase" if marketed
+
+## Display Name System
+- [x] Add displayName (varchar 64) column to users table — separate from OAuth name
+- [x] Migration applied to DB
+- [x] tRPC procedure: profile.setDisplayName — user sets their own display name
+- [x] tRPC procedure: profile.me — returns current user's profile including displayName
+- [x] tRPC procedure: adminUsers.list — admin sees all users with names, roles, join date
+- [x] tRPC procedure: adminUsers.update — admin can edit displayName and role for any user
+- [x] ChooseDisplayName page at /choose-name — shown on first sign-in, before welcome page redirect
+- [x] Display name prompt: large friendly input, "What should we call you?", required before proceeding
+- [x] hasChosenName flag to detect if name has been set
+- [x] All UI updated to show displayName instead of OAuth name or email
+- [x] Admin Users panel at /admin/users — list all users, edit name/role inline
+- [x] Admin panel linked from the "Suggest a Change" admin window
+- [x] Set Alex's displayName = "Alex" and role = "admin" directly in the database

@@ -377,12 +377,24 @@ export default function AdminFeedback() {
               </p>
             </div>
           </div>
-          {isPopup && (
-            <Button variant="ghost" size="sm" onClick={() => window.close()} className="gap-1 h-9">
-              <X className="w-4 h-4" />
-              Close
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open("/admin/users", "_blank", "width=700,height=700,scrollbars=yes")}
+                className="gap-1 h-9 border-amber-300 text-amber-700 hover:bg-amber-50"
+              >
+                👥 Manage Users
+              </Button>
+            )}
+            {isPopup && (
+              <Button variant="ghost" size="sm" onClick={() => window.close()} className="gap-1 h-9">
+                <X className="w-4 h-4" />
+                Close
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 

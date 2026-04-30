@@ -15,7 +15,7 @@ export default function JoinTrip() {
   const { user, loading: authLoading } = useAuth();
   const token = params?.token || "";
 
-  const [name, setName] = useState(user?.name || "");
+  const [name, setName] = useState((user as any)?.displayName || user?.name || "");
   const [planningPath, setPlanningPath] = useState<"activities_first" | "lodging_first">("activities_first");
   const [joined, setJoined] = useState(false);
   const [joinedTripId, setJoinedTripId] = useState<number | null>(null);
@@ -215,7 +215,7 @@ export default function JoinTrip() {
             onClick={() =>
               acceptInvite.mutate({
                 token,
-                name: name.trim() || user.name || "Traveler",
+                name: name.trim() || (user as any).displayName || user.name || "Traveler",
                 planningPath,
               })
             }

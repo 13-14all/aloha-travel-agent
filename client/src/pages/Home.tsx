@@ -143,7 +143,7 @@ export default function Home() {
             ) : user ? (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground hidden lg:block">
-                  Welcome, <strong className="text-foreground">{user.name || "Traveler"}</strong>
+                  Welcome, <strong className="text-foreground">{(user as any).displayName || user.name || "Traveler"}</strong>
                 </span>
                 <Button
                   variant="outline"

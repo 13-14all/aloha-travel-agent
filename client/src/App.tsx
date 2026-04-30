@@ -9,32 +9,49 @@ import JoinTrip from "./pages/JoinTrip";
 import TripDashboard from "./pages/TripDashboard";
 import HowItWorks from "./pages/HowItWorks";
 import AdminFeedback from "./pages/AdminFeedback";
+import AdminUsers from "./pages/AdminUsers";
 import WelcomeTami from "./pages/WelcomeTami";
 import WelcomeGuest from "./pages/WelcomeGuest";
+import ChooseDisplayName from "./pages/ChooseDisplayName";
 import { useAuth } from "./_core/hooks/useAuth";
 import { useEffect } from "react";
 
-// ─── First-Login Redirect Guard ───────────────────────────────────────────────
-// Checks if the authenticated user has seen their welcome page.
-// If not, redirects them to the appropriate welcome page based on their name.
-// Tami gets a personalized page; everyone else gets the general guest welcome.
+// ─── First-Login Flow Guard ───────────────────────────────────────────────────
+// Step 1: If user hasn't chosen a display name → /choose-name
+// Step 2: If user has a name but hasn't seen welcome → /welcome/tami or /welcome/guest
+// This runs on every navigation so the user can't skip either step.
 function WelcomeGuard({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, loading } = useAuth();
   const [location, navigate] = useLocation();
 
-  // Pages that should NOT trigger the welcome redirect
-  const skipPages = ["/welcome/tami", "/welcome/guest", "/help", "/admin/feedback", "/join/"];
+  // Pages that should never trigger a redirect
+  const skipPages = [
+    "/choose-name",
+    "/welcome/tami",
+    "/welcome/guest",
+    "/help",
+    "/admin/",
+    "/join/",
+  ];
   const shouldSkip = skipPages.some((p) => location.startsWith(p));
 
   useEffect(() => {
     if (loading || !isAuthenticated || shouldSkip) return;
-    if (user && !user.hasSeenWelcome) {
-      // Detect Tami by name (case-insensitive)
-      const name = (user.name ?? "").toLowerCase();
-      if (name.includes("tami") || name.includes("tamara")) {
-        navigate("/welcome/tami");
-      } else {
-        navigate("/welcome/guest");
+
+    if (user) {
+      // Step 1: Name not chosen yet → name picker
+      if (!user.hasChosenName) {
+        navigate("/choose-name");
+        return;
+      }
+      // Step 2: Welcome not seen yet → welcome page
+      if (!user.hasSeenWelcome) {
+        const name = (user.displayName ?? user.name ?? "").toLowerCase();
+        if (name.includes("tami") || name.includes("tamara")) {
+          navigate("/welcome/tami");
+        } else {
+          navigate("/welcome/guest");
+        }
       }
     }
   }, [user, isAuthenticated, loading, shouldSkip, navigate]);
@@ -49,11 +66,13 @@ function Router() {
         <Route path={"/"} component={Home} />
         <Route path={"/trip/:id"} component={TripDashboard} />
         <Route path={"/join/:token"} component={JoinTrip} />
-        {/* Help page — opens in new window, also accessible directly */}
+        {/* Help page — opens in new window */}
         <Route path={"/help"} component={HowItWorks} />
-        {/* Admin change request window */}
+        {/* Admin windows — open in new window */}
         <Route path={"/admin/feedback"} component={AdminFeedback} />
-        {/* First-login welcome pages */}
+        <Route path={"/admin/users"} component={AdminUsers} />
+        {/* First-login flow */}
+        <Route path={"/choose-name"} component={ChooseDisplayName} />
         <Route path={"/welcome/tami"} component={WelcomeTami} />
         <Route path={"/welcome/guest"} component={WelcomeGuest} />
         <Route path={"/404"} component={NotFound} />

@@ -1034,12 +1034,81 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    /** List only the current user's own submissions */
+     /** List only the current user's own submissions */
     myList: protectedProcedure
       .query(async ({ ctx }) => {
         return getUserChangeRequests(ctx.user.id);
       }),
   }),
-});
 
+  // ─── Profile ─────────────────────────────────────────────────────────────────
+  profile: router({
+    /** Get the current user's profile */
+    me: protectedProcedure.query(async ({ ctx }) => {
+      const db = await (await import("drizzle-orm/mysql2")).drizzle(process.env.DATABASE_URL!);
+      const { users } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+      const rows = await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1);
+      return rows[0] ?? null;
+    }),
+
+    /** Set or update the current user's display name */
+    setDisplayName: protectedProcedure
+      .input(z.object({ displayName: z.string().min(1).max(64).trim() }))
+      .mutation(async ({ ctx, input }) => {
+        const db = await (await import("drizzle-orm/mysql2")).drizzle(process.env.DATABASE_URL!);
+        const { users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        await db.update(users)
+          .set({ displayName: input.displayName, hasChosenName: true })
+          .where(eq(users.id, ctx.user.id));
+        return { success: true, displayName: input.displayName };
+      }),
+  }),
+
+  // ─── Admin User Management ────────────────────────────────────────────────────
+  adminUsers: router({
+    /** List all users — admin only */
+    list: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      const db = await (await import("drizzle-orm/mysql2")).drizzle(process.env.DATABASE_URL!);
+      const { users } = await import("../drizzle/schema");
+      const rows = await db.select({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        displayName: users.displayName,
+        role: users.role,
+        hasChosenName: users.hasChosenName,
+        hasSeenWelcome: users.hasSeenWelcome,
+        createdAt: users.createdAt,
+        lastSignedIn: users.lastSignedIn,
+      }).from(users).orderBy(users.createdAt);
+      return rows;
+    }),
+
+    /** Update a user's displayName and/or role — admin only */
+    update: protectedProcedure
+      .input(z.object({
+        userId: z.number(),
+        displayName: z.string().min(1).max(64).trim().optional(),
+        role: z.enum(["user", "admin"]).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const db = await (await import("drizzle-orm/mysql2")).drizzle(process.env.DATABASE_URL!);
+        const { users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const updateData: Record<string, unknown> = {};
+        if (input.displayName !== undefined) {
+          updateData.displayName = input.displayName;
+          updateData.hasChosenName = true;
+        }
+        if (input.role !== undefined) updateData.role = input.role;
+        if (Object.keys(updateData).length === 0) return { success: true };
+        await db.update(users).set(updateData).where(eq(users.id, input.userId));
+        return { success: true };
+      }),
+  }),
+});
 export type AppRouter = typeof appRouter;
