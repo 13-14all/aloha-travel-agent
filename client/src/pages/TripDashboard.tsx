@@ -16,6 +16,7 @@ import {
   Plane,
   Map,
   CalendarDays,
+  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
@@ -32,11 +33,12 @@ import { BudgetTracker } from "@/components/BudgetTracker";
 import { FlightTracker } from "@/components/FlightTracker";
 import { IslandMapView } from "@/components/IslandMapView";
 import { ItineraryBuilder } from "@/components/ItineraryBuilder";
+import TripNotes from "@/components/TripNotes";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { HelpButton } from "@/components/HelpButton";
 
-type TabType = "chat" | "search" | "itinerary" | "family" | "merge" | "flights" | "map" | "schedule";
+type TabType = "chat" | "search" | "itinerary" | "family" | "merge" | "flights" | "map" | "schedule" | "notes";
 
 export default function TripDashboard() {
   const [, params] = useRoute("/trip/:id");
@@ -132,6 +134,7 @@ export default function TripDashboard() {
     { key: "flights", label: "Flights", icon: <Plane className="w-5 h-5" /> },
     { key: "map", label: "Island Map", icon: <Map className="w-5 h-5" /> },
     { key: "schedule", label: "Day Schedule", icon: <CalendarDays className="w-5 h-5" /> },
+    { key: "notes", label: "Notes & Journal", icon: <BookOpen className="w-5 h-5" /> },
   ];
 
   return (
@@ -463,6 +466,15 @@ export default function TripDashboard() {
             {activeTab === "schedule" && (
               <div className="p-4 sm:p-6 overflow-y-auto" style={{ minHeight: "600px" }}>
                 <ItineraryBuilder tripId={trip.id} />
+              </div>
+            )}
+
+            {activeTab === "notes" && (
+              <div className="p-4 sm:p-6 overflow-y-auto" style={{ minHeight: "600px" }}>
+                <TripNotes
+                  tripId={trip.id}
+                  canEdit={myMember ? myMember.role !== "viewer" : true}
+                />
               </div>
             )}
           </div>

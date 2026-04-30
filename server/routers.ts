@@ -1110,5 +1110,67 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+
+  // ─── Trip Notes ────────────────────────────────────────────────────────────
+  notes: router({
+    list: protectedProcedure
+      .input(z.object({ tripId: z.number() }))
+      .query(async ({ input }) => {
+        const { getTripNotes } = await import("./db");
+        return getTripNotes(input.tripId);
+      }),
+
+    add: protectedProcedure
+      .input(z.object({
+        tripId: z.number(),
+        category: z.enum(["general", "packing_list", "reminder", "tip", "journal"]),
+        title: z.string().min(1).max(255),
+        content: z.string().min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { addTripNote } = await import("./db");
+        const authorName = (ctx.user as any).displayName || ctx.user.name || "Traveler";
+        const id = await addTripNote({
+          tripId: input.tripId,
+          userId: ctx.user.id,
+          authorName,
+          category: input.category,
+          title: input.title,
+          content: input.content,
+        });
+        return { id };
+      }),
+
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        title: z.string().min(1).max(255).optional(),
+        content: z.string().min(1).optional(),
+        category: z.enum(["general", "packing_list", "reminder", "tip", "journal"]).optional(),
+        isPinned: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { updateTripNote } = await import("./db");
+        const { id, ...data } = input;
+        await updateTripNote(id, data);
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const { deleteTripNote } = await import("./db");
+        await deleteTripNote(input.id);
+        return { success: true };
+      }),
+
+    togglePin: protectedProcedure
+      .input(z.object({ id: z.number(), isPinned: z.boolean() }))
+      .mutation(async ({ input }) => {
+        const { updateTripNote } = await import("./db");
+        await updateTripNote(input.id, { isPinned: input.isPinned });
+        return { success: true };
+      }),
+  }),
 });
 export type AppRouter = typeof appRouter;

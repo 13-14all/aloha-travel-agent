@@ -191,3 +191,15 @@
 - [x] Admin Users panel at /admin/users — list all users, edit name/role inline
 - [x] Admin panel linked from the "Suggest a Change" admin window
 - [x] Set Alex's displayName = "Alex" and role = "admin" directly in the database
+
+## Trip Notes & Shared Journal
+- [x] trip_notes table: id, tripId, userId, authorName, category, title, content, isPinned, sortOrder, createdAt, updatedAt
+- [x] Categories: packing_list, reminder, tip, journal, general
+- [x] tRPC notes router: add, list, update, delete, togglePin
+- [x] TripNotes component: categorized tabs (All / Packing / Reminders / Tips / Journal)
+- [x] Add note form: category selector, title, content textarea
+- [x] Note cards: author name, date, category badge, pin button, edit/delete
+- [x] Pinned notes appear at top of list
+- [x] Any planner can add/edit their own notes; viewers read-only
+- [x] Notes tab in TripDashboard
+- [x] Help page updated to mention Notes tab

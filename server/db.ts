@@ -417,3 +417,57 @@ export async function getUserChangeRequests(userId: number) {
     .where(eq(changeRequests.userId, userId))
     .orderBy(desc(changeRequests.createdAt));
 }
+
+// ─── Trip Notes ───────────────────────────────────────────────────────────────
+
+export async function getTripNotes(tripId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const { tripNotes } = await import("../drizzle/schema");
+  const { eq, desc, asc } = await import("drizzle-orm");
+  // Pinned notes first, then by sortOrder, then newest first
+  return db
+    .select()
+    .from(tripNotes)
+    .where(eq(tripNotes.tripId, tripId))
+    .orderBy(desc(tripNotes.isPinned), asc(tripNotes.sortOrder), desc(tripNotes.createdAt));
+}
+
+export async function addTripNote(data: {
+  tripId: number;
+  userId: number;
+  authorName: string;
+  category: "general" | "packing_list" | "reminder" | "tip" | "journal";
+  title: string;
+  content: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const { tripNotes } = await import("../drizzle/schema");
+  const [result] = await db.insert(tripNotes).values(data);
+  return (result as any).insertId as number;
+}
+
+export async function updateTripNote(
+  id: number,
+  data: Partial<{
+    title: string;
+    content: string;
+    category: "general" | "packing_list" | "reminder" | "tip" | "journal";
+    isPinned: boolean;
+  }>
+) {
+  const db = await getDb();
+  if (!db) return;
+  const { tripNotes } = await import("../drizzle/schema");
+  const { eq } = await import("drizzle-orm");
+  await db.update(tripNotes).set(data).where(eq(tripNotes.id, id));
+}
+
+export async function deleteTripNote(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  const { tripNotes } = await import("../drizzle/schema");
+  const { eq } = await import("drizzle-orm");
+  await db.delete(tripNotes).where(eq(tripNotes.id, id));
+}

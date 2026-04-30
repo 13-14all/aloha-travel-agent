@@ -286,3 +286,33 @@ export const changeRequests = mysqlTable("change_requests", {
 
 export type ChangeRequest = typeof changeRequests.$inferSelect;
 export type InsertChangeRequest = typeof changeRequests.$inferInsert;
+
+// ─── Trip Notes & Shared Journal ─────────────────────────────────────────────
+
+export const tripNotes = mysqlTable("trip_notes", {
+  id: int("id").autoincrement().primaryKey(),
+  tripId: int("tripId").notNull(),
+  userId: int("userId").notNull(),
+  /** Display name of the author at time of writing */
+  authorName: varchar("authorName", { length: 128 }).notNull(),
+  /** Note category for filtering */
+  category: mysqlEnum("category", [
+    "general",
+    "packing_list",
+    "reminder",
+    "tip",
+    "journal",
+  ]).default("general").notNull(),
+  /** Short title / heading for the note */
+  title: varchar("title", { length: 255 }).notNull(),
+  /** Full note content */
+  content: text("content").notNull(),
+  /** Pinned notes appear at the top of the list */
+  isPinned: boolean("isPinned").default(false).notNull(),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type TripNote = typeof tripNotes.$inferSelect;
+export type InsertTripNote = typeof tripNotes.$inferInsert;
