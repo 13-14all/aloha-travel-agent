@@ -1129,6 +1129,7 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const { addTripNote } = await import("./db");
+        const { broadcastToTrip } = await import("./sse");
         const authorName = (ctx.user as any).displayName || ctx.user.name || "Traveler";
         const id = await addTripNote({
           tripId: input.tripId,
@@ -1138,29 +1139,64 @@ export const appRouter = router({
           title: input.title,
           content: input.content,
         });
+        // Broadcast to all other connected members of this trip
+        broadcastToTrip({
+          type: "note_added",
+          tripId: input.tripId,
+          noteId: id,
+          authorId: ctx.user.id,
+          authorName,
+          title: input.title,
+          category: input.category,
+          content: input.content.slice(0, 120),
+          timestamp: new Date().toISOString(),
+        }, ctx.user.id);
         return { id };
       }),
 
     update: protectedProcedure
       .input(z.object({
         id: z.number(),
+        tripId: z.number(),
         title: z.string().min(1).max(255).optional(),
         content: z.string().min(1).optional(),
         category: z.enum(["general", "packing_list", "reminder", "tip", "journal"]).optional(),
         isPinned: z.boolean().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const { updateTripNote } = await import("./db");
-        const { id, ...data } = input;
+        const { broadcastToTrip } = await import("./sse");
+        const { id, tripId, ...data } = input;
         await updateTripNote(id, data);
+        const authorName = (ctx.user as any).displayName || ctx.user.name || "Traveler";
+        broadcastToTrip({
+          type: "note_updated",
+          tripId,
+          noteId: id,
+          authorId: ctx.user.id,
+          authorName,
+          title: input.title,
+          category: input.category,
+          timestamp: new Date().toISOString(),
+        }, ctx.user.id);
         return { success: true };
       }),
 
     delete: protectedProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
+      .input(z.object({ id: z.number(), tripId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
         const { deleteTripNote } = await import("./db");
+        const { broadcastToTrip } = await import("./sse");
         await deleteTripNote(input.id);
+        const authorName = (ctx.user as any).displayName || ctx.user.name || "Traveler";
+        broadcastToTrip({
+          type: "note_deleted",
+          tripId: input.tripId,
+          noteId: input.id,
+          authorId: ctx.user.id,
+          authorName,
+          timestamp: new Date().toISOString(),
+        }, ctx.user.id);
         return { success: true };
       }),
 

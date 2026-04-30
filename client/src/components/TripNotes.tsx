@@ -88,7 +88,7 @@ function NoteForm({
       return;
     }
     if (initial) {
-      updateNote.mutate({ id: initial.id, title: title.trim(), content: content.trim(), category });
+      updateNote.mutate({ id: initial.id, tripId, title: title.trim(), content: content.trim(), category });
     } else {
       addNote.mutate({ tripId, category, title: title.trim(), content: content.trim() });
     }
@@ -191,6 +191,7 @@ function NoteCard({
 }: {
   note: {
     id: number;
+    tripId: number;
     title: string;
     content: string;
     category: string;
@@ -266,7 +267,7 @@ function NoteCard({
             </button>
             <button
               onClick={() => {
-                if (confirm("Delete this note?")) deleteNote.mutate({ id: note.id });
+                if (confirm("Delete this note?")) deleteNote.mutate({ id: note.id, tripId: note.tripId });
               }}
               className="p-1.5 rounded-lg text-muted-foreground hover:bg-red-50 hover:text-red-500 transition-colors"
               title="Delete note"

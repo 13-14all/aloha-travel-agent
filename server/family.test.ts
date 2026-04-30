@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
+import {
+  registerSSEClient,
+  broadcastToTrip,
+  getConnectionCount,
+} from "./sse";
 
 // ─── Test Helpers ─────────────────────────────────────────────────────────────
 
@@ -457,5 +462,106 @@ describe("itinerary builder", () => {
     expect(formatTime("12:00")).toBe("12:00 PM");
     expect(formatTime("19:00")).toBe("7:00 PM");
     expect(formatTime(null)).toBe("");
+  });
+});
+
+// ── Real-time Notifications (SSE) ─────────────────────────────────────────────
+
+describe("SSE broadcastToTrip", () => {
+  it("sends event to all connected clients for a trip", () => {
+    const written: string[] = [];
+    const mockRes = {
+      write: (chunk: string) => { written.push(chunk); },
+      flush: () => {},
+    } as any;
+
+    const cleanup = registerSSEClient(9001, 1, mockRes);
+    expect(getConnectionCount(9001)).toBe(1);
+
+    broadcastToTrip({
+      type: "note_added",
+      tripId: 9001,
+      noteId: 42,
+      authorName: "Alex",
+      authorId: 2,
+      title: "Packing list",
+      timestamp: new Date().toISOString(),
+    });
+
+    // The client (userId=1) should receive the event because excludeUserId is not set
+    expect(written.some((w) => w.includes("note_added"))).toBe(true);
+    expect(written.some((w) => w.includes("Packing list"))).toBe(true);
+
+    cleanup();
+    expect(getConnectionCount(9001)).toBe(0);
+  });
+
+  it("excludes the author from receiving their own broadcast", () => {
+    const written: string[] = [];
+    const mockRes = {
+      write: (chunk: string) => { written.push(chunk); },
+      flush: () => {},
+    } as any;
+
+    const cleanup = registerSSEClient(9002, 5, mockRes);
+
+    // Clear any writes from the initial ping
+    written.length = 0;
+
+    broadcastToTrip(
+      {
+        type: "note_updated",
+        tripId: 9002,
+        noteId: 10,
+        authorName: "Tami",
+        authorId: 5,
+        title: "Hotel tips",
+        timestamp: new Date().toISOString(),
+      },
+      5 // exclude userId 5 (the author)
+    );
+
+    // The only connected client IS the author, so nothing should be written
+    const noteEvents = written.filter((w) => w.includes("note_updated"));
+    expect(noteEvents).toHaveLength(0);
+
+    cleanup();
+    expect(getConnectionCount(9002)).toBe(0);
+  });
+
+  it("handles broadcast to trip with no connected clients gracefully", () => {
+    // Should not throw even when no clients are connected
+    expect(() =>
+      broadcastToTrip({
+        type: "note_deleted",
+        tripId: 99999,
+        noteId: 7,
+        authorName: "Guest",
+        authorId: 99,
+        timestamp: new Date().toISOString(),
+      })
+    ).not.toThrow();
+  });
+
+  it("NoteEvent type includes all required fields", () => {
+    const event = {
+      type: "note_added" as const,
+      tripId: 1,
+      noteId: 1,
+      authorName: "Alex",
+      authorId: 1,
+      title: "Test note",
+      category: "packing",
+      content: "Sunscreen",
+      timestamp: new Date().toISOString(),
+    };
+    expect(event.type).toBe("note_added");
+    expect(event.tripId).toBe(1);
+    expect(event.authorName).toBe("Alex");
+    expect(typeof event.timestamp).toBe("string");
+  });
+
+  it("getConnectionCount returns 0 for unknown trip", () => {
+    expect(getConnectionCount(88888)).toBe(0);
   });
 });

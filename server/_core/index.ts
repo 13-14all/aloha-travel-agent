@@ -7,6 +7,8 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { registerSSEClient } from "../sse";
+import { sdk } from "./sdk";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -35,6 +37,52 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+  // SSE endpoint for real-time trip notifications
+  // GET /api/events/:tripId — streams events to connected clients
+  app.get("/api/events/:tripId", async (req, res) => {
+    const tripId = parseInt(req.params.tripId);
+    if (isNaN(tripId)) {
+      res.status(400).json({ error: "Invalid tripId" });
+      return;
+    }
+
+    // Authenticate the request directly
+    let user;
+    try {
+      user = await sdk.authenticateRequest(req as any);
+    } catch {
+      user = null;
+    }
+    if (!user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    // Set SSE headers
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no"); // Disable nginx buffering
+    res.flushHeaders();
+
+    const cleanup = registerSSEClient(tripId, user.id, res);
+
+    // Keep-alive ping every 25s to prevent proxy timeouts
+    const pingInterval = setInterval(() => {
+      try {
+        res.write(`: ping\n\n`);
+        if (typeof (res as any).flush === "function") (res as any).flush();
+      } catch {
+        clearInterval(pingInterval);
+      }
+    }, 25000);
+
+    req.on("close", () => {
+      clearInterval(pingInterval);
+      cleanup();
+    });
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",

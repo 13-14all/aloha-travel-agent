@@ -34,9 +34,12 @@ import { FlightTracker } from "@/components/FlightTracker";
 import { IslandMapView } from "@/components/IslandMapView";
 import { ItineraryBuilder } from "@/components/ItineraryBuilder";
 import TripNotes from "@/components/TripNotes";
+import { NotificationBell } from "@/components/NotificationBell";
+import { useSSE } from "@/hooks/useSSE";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { HelpButton } from "@/components/HelpButton";
+import { toast } from "sonner";
 
 type TabType = "chat" | "search" | "itinerary" | "family" | "merge" | "flights" | "map" | "schedule" | "notes";
 
@@ -79,6 +82,26 @@ export default function TripDashboard() {
       setActiveMemberId(myMember.id);
     }
   }, [myMember]);
+
+  // Real-time SSE notifications
+  const { status: sseStatus, notifications, unreadCount, markAllRead, latestEvent } = useSSE(tripId);
+  const utils = trpc.useUtils();
+
+  // When a new note event arrives, show a toast and refresh the notes list
+  useEffect(() => {
+    if (!latestEvent || latestEvent.type === "ping") return;
+    const labels: Record<string, string> = {
+      note_added: "added a new note",
+      note_updated: "updated a note",
+      note_deleted: "deleted a note",
+    };
+    const msg = labels[latestEvent.type] ?? "updated the trip";
+    toast.info(`${latestEvent.authorName} ${msg}${
+      latestEvent.title ? `: "${latestEvent.title}"` : ""
+    }`, { duration: 5000 });
+    // Refresh notes list so the new entry appears immediately
+    utils.notes.list.invalidate({ tripId: latestEvent.tripId });
+  }, [latestEvent]);
 
   if (authLoading || isLoading) {
     return (
@@ -173,6 +196,14 @@ export default function TripDashboard() {
 
             {/* Help button */}
             <HelpButton compact />
+
+            {/* Real-time notification bell */}
+            <NotificationBell
+              notifications={notifications}
+              unreadCount={unreadCount}
+              status={sseStatus}
+              onMarkAllRead={markAllRead}
+            />
 
             {/* Suggest a Change — visible to all logged-in users */}
             {user && (

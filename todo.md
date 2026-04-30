@@ -203,3 +203,17 @@
 - [x] Any planner can add/edit their own notes; viewers read-only
 - [x] Notes tab in TripDashboard
 - [x] Help page updated to mention Notes tab
+
+## Real-Time Notifications (Notes & Journal)
+- [x] Server-Sent Events (SSE) endpoint at /api/events/:tripId — streams live events to connected clients
+- [x] SSE connection manager: tracks active connections per trip, handles connect/disconnect cleanly
+- [x] Broadcast function: pushes note_added / note_updated / note_deleted events to all trip members
+- [x] notes.add tRPC mutation triggers broadcast after DB insert
+- [x] notes.update and notes.delete also broadcast to keep all clients in sync
+- [x] useSSE React hook: connects to /api/events/:tripId, auto-reconnects on disconnect
+- [x] Notification toast: appears for other members when a new note is added (not the author)
+- [x] Notification bell icon in TripDashboard header with unread count badge
+- [x] Notification dropdown: shows last 10 note events with author, category, title, and timestamp
+- [x] Mark all as read clears the badge
+- [x] TripNotes list auto-refreshes when a note_added event arrives (no manual reload needed)
+- [x] SSE connection status indicator (subtle dot: green=live, grey=reconnecting)
