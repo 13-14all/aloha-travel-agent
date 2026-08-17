@@ -217,3 +217,15 @@
 - [x] Mark all as read clears the badge
 - [x] TripNotes list auto-refreshes when a note_added event arrives (no manual reload needed)
 - [x] SSE connection status indicator (subtle dot: green=live, grey=reconnecting)
+
+## Voice Input for Leilani
+- [x] Add secure audio upload and server-side transcription flow using the built-in voice transcription service
+- [x] Add a large, accessible microphone button to the Leilani chat composer
+- [x] Show clear recording, processing, success, and error feedback without sending audio automatically
+- [x] Insert the transcribed text into the chat composer so the user can review and edit it before sending
+
+## Seven-Day Island Weather Forecast
+- [x] Add a server-side weather data provider for Oahu and Big Island, using an API that requires no user API key
+- [x] Add a Weather tab in TripDashboard with a clear island selector and seven daily forecast cards
+- [x] Show daily conditions, high and low temperature, precipitation chance, and practical travel guidance
+- [x] Add weather data logic tests and verify the full test suite

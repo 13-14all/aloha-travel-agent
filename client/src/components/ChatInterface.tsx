@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { Send, Loader2, RefreshCw, Sparkles, Mic, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Mascot } from "./Mascot";
@@ -118,9 +118,14 @@ interface ChatInterfaceProps {
 export function ChatInterface({ trip, onTripUpdate, memberId, memberName }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [latestMsgId, setLatestMsgId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingStreamRef = useRef<MediaStream | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
   const utils = trpc.useUtils();
 
   const { data: messages = [], isLoading } = trpc.chat.messages.useQuery(
@@ -147,6 +152,19 @@ export function ChatInterface({ trip, onTripUpdate, memberId, memberName }: Chat
     },
   });
 
+  const transcribeVoice = trpc.voice.transcribeChat.useMutation({
+    onSuccess: ({ text }) => {
+      setInput((current) => (current.trim() ? `${current.trim()} ${text}` : text));
+      setIsTranscribing(false);
+      textareaRef.current?.focus();
+      toast.success("Your words are ready. Please review them, then send when you are ready.");
+    },
+    onError: (error) => {
+      setIsTranscribing(false);
+      toast.error(error.message || "I couldn't turn that recording into text. Please try again.");
+    },
+  });
+
   // Initialize welcome message when chat is first opened (per member session)
   useEffect(() => {
     if (!isLoading && messages.length === 0) {
@@ -158,6 +176,13 @@ export function ChatInterface({ trip, onTripUpdate, memberId, memberName }: Chat
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isSending]);
+
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
+      recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
 
   const handleSend = useCallback(() => {
     const text = input.trim();
@@ -171,6 +196,89 @@ export function ChatInterface({ trip, onTripUpdate, memberId, memberName }: Chat
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  const toBase64 = (blob: Blob) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const value = typeof reader.result === "string" ? reader.result : "";
+        resolve(value.split(",")[1] || "");
+      };
+      reader.onerror = () => reject(new Error("Unable to read your recording."));
+      reader.readAsDataURL(blob);
+    });
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
+  };
+
+  const handleVoiceInput = async () => {
+    if (isRecording) {
+      stopRecording();
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      toast.error("Voice input is not supported by this browser. You can still type your message.");
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const supportedMimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/mp4"]
+        .find((type) => MediaRecorder.isTypeSupported(type));
+      if (!supportedMimeType) {
+        stream.getTracks().forEach((track) => track.stop());
+        toast.error("This browser cannot create a voice recording format that Leilani can understand.");
+        return;
+      }
+
+      recordedChunksRef.current = [];
+      recordingStreamRef.current = stream;
+      const recorder = new MediaRecorder(stream, { mimeType: supportedMimeType });
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) recordedChunksRef.current.push(event.data);
+      };
+      recorder.onerror = () => {
+        setIsRecording(false);
+        recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
+        toast.error("There was a problem recording your voice. Please try again.");
+      };
+      recorder.onstop = async () => {
+        recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
+        recordingStreamRef.current = null;
+        setIsRecording(false);
+
+        const mimeType = supportedMimeType.split(";")[0] as "audio/webm" | "audio/ogg" | "audio/mp4";
+        const recording = new Blob(recordedChunksRef.current, { type: mimeType });
+        if (recording.size === 0) {
+          toast.error("I didn't receive a recording. Please try again.");
+          return;
+        }
+        if (recording.size > 12 * 1024 * 1024) {
+          toast.error("That recording is too long. Please make a shorter recording and try again.");
+          return;
+        }
+
+        try {
+          setIsTranscribing(true);
+          const audioBase64 = await toBase64(recording);
+          transcribeVoice.mutate({ tripId: trip.id, audioBase64, mimeType });
+        } catch {
+          setIsTranscribing(false);
+          toast.error("I couldn't read that recording. Please try again.");
+        }
+      };
+
+      recorder.start();
+      setIsRecording(true);
+      toast.message("Recording has started. Tap Stop when you are finished.");
+    } catch {
+      toast.error("Microphone access was not available. Please allow it in your browser settings, then try again.");
     }
   };
 
@@ -239,12 +347,23 @@ export function ChatInterface({ trip, onTripUpdate, memberId, memberName }: Chat
             placeholder="Type your message here... (Press Enter to send)"
             className="flex-1 resize-none text-base min-h-[52px] max-h-[140px] rounded-xl border-border focus:border-primary"
             rows={1}
-            disabled={isSending}
+            disabled={isSending || isTranscribing}
             style={{ fontSize: "1rem" }}
           />
           <Button
+            type="button"
+            variant={isRecording ? "destructive" : "outline"}
+            onClick={handleVoiceInput}
+            disabled={isSending || isTranscribing}
+            className="h-[52px] px-3 rounded-xl text-base font-semibold shrink-0"
+            aria-label={isRecording ? "Stop voice recording" : "Start voice recording"}
+          >
+            {isRecording ? <Square className="w-5 h-5 mr-1.5" /> : isTranscribing ? <Loader2 className="w-5 h-5 mr-1.5 animate-spin" /> : <Mic className="w-5 h-5 mr-1.5" />}
+            {isRecording ? "Stop" : isTranscribing ? "Listening" : "Speak"}
+          </Button>
+          <Button
             onClick={handleSend}
-            disabled={!input.trim() || isSending}
+            disabled={!input.trim() || isSending || isTranscribing}
             size="lg"
             className="h-[52px] w-[52px] p-0 rounded-xl gradient-tropical text-white border-0 shadow-md hover:opacity-90 transition-opacity shrink-0"
           >
@@ -256,7 +375,11 @@ export function ChatInterface({ trip, onTripUpdate, memberId, memberName }: Chat
           </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-2 text-center">
-          Press <kbd className="px-1 py-0.5 bg-muted rounded text-xs">Enter</kbd> to send · <kbd className="px-1 py-0.5 bg-muted rounded text-xs">Shift+Enter</kbd> for new line
+          {isRecording
+            ? "Recording now. Tap Stop when you are done speaking."
+            : isTranscribing
+              ? "Turning your words into text…"
+              : <>Tap <strong>Speak</strong>, tell Leilani your idea, then review the words before sending. Press <kbd className="px-1 py-0.5 bg-muted rounded text-xs">Enter</kbd> to send.</>}
         </p>
       </div>
     </div>

@@ -15,6 +15,7 @@ import {
   Crown,
   Plane,
   Map,
+  CloudSun,
   CalendarDays,
   BookOpen,
 } from "lucide-react";
@@ -34,6 +35,7 @@ import { FlightTracker } from "@/components/FlightTracker";
 import { IslandMapView } from "@/components/IslandMapView";
 import { ItineraryBuilder } from "@/components/ItineraryBuilder";
 import TripNotes from "@/components/TripNotes";
+import { WeatherForecast } from "@/components/WeatherForecast";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useSSE } from "@/hooks/useSSE";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -41,7 +43,7 @@ import { getLoginUrl } from "@/const";
 import { HelpButton } from "@/components/HelpButton";
 import { toast } from "sonner";
 
-type TabType = "chat" | "search" | "itinerary" | "family" | "merge" | "flights" | "map" | "schedule" | "notes";
+type TabType = "chat" | "search" | "itinerary" | "family" | "merge" | "flights" | "map" | "weather" | "schedule" | "notes";
 
 export default function TripDashboard() {
   const [, params] = useRoute("/trip/:id");
@@ -156,6 +158,7 @@ export default function TripDashboard() {
     { key: "merge", label: "Merge & Finalize", icon: <GitMerge className="w-5 h-5" />, ownerOnly: false },
     { key: "flights", label: "Flights", icon: <Plane className="w-5 h-5" /> },
     { key: "map", label: "Island Map", icon: <Map className="w-5 h-5" /> },
+    { key: "weather", label: "Weather", icon: <CloudSun className="w-5 h-5" /> },
     { key: "schedule", label: "Day Schedule", icon: <CalendarDays className="w-5 h-5" /> },
     { key: "notes", label: "Notes & Journal", icon: <BookOpen className="w-5 h-5" /> },
   ];
@@ -491,6 +494,12 @@ export default function TripDashboard() {
                   tripId={trip.id}
                   islands={trip.islands as string[] ?? []}
                 />
+              </div>
+            )}
+
+            {activeTab === "weather" && (
+              <div className="p-4 sm:p-6 overflow-y-auto" style={{ minHeight: "600px" }}>
+                <WeatherForecast tripId={trip.id} islands={islands} />
               </div>
             )}
 

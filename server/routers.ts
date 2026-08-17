@@ -43,6 +43,15 @@ import {
   getUserChangeRequests,
 } from "./db";
 import { chatWithAgent, extractTripData, searchForRecommendations, DESTINATION_CONFIGS } from "./agent";
+import { storageGet, storagePut } from "./storage";
+import { transcribeAudio } from "./_core/voiceTranscription";
+import { getIslandForecast } from "./weather";
+import {
+  getVoiceFileExtension,
+  getVoiceRecordingError,
+  MAX_VOICE_AUDIO_BYTES,
+  VOICE_MIME_TYPES,
+} from "./voice";
 
 // ─── Permission Helpers ───────────────────────────────────────────────────────
 
@@ -503,6 +512,72 @@ export const appRouter = router({
         await assertTripAccess(input.tripId, ctx.user.id, "owner");
         await clearChatMessages(input.tripId);
         return { success: true };
+      }),
+  }),
+
+  // ─── Voice Input ─────────────────────────────────────────────────────────────
+  voice: router({
+    transcribeChat: protectedProcedure
+      .input(z.object({
+        tripId: z.number(),
+        audioBase64: z.string().min(1).max(17_000_000),
+        mimeType: z.enum(VOICE_MIME_TYPES),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await assertTripAccess(input.tripId, ctx.user.id, "planner");
+
+        const audioBuffer = Buffer.from(input.audioBase64, "base64");
+        const recordingError = getVoiceRecordingError(audioBuffer.length);
+        if (recordingError) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: recordingError,
+          });
+        }
+
+        const extension = getVoiceFileExtension(input.mimeType);
+        const { key } = await storagePut(
+          `voice-input/${ctx.user.id}/${nanoid()}.${extension}`,
+          audioBuffer,
+          input.mimeType
+        );
+        const { url: audioUrl } = await storageGet(key);
+
+        const result = await transcribeAudio({
+          audioUrl,
+          language: "en",
+          prompt: "Transcribe the user's travel-planning message for Leilani. Preserve Hawaiian place names and travel details when possible.",
+        });
+        if ("error" in result) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: result.error });
+        }
+
+        const text = result.text.trim();
+        if (!text) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "I couldn't hear any words in that recording. Please try again." });
+        }
+        return { text, language: result.language, duration: result.duration };
+      }),
+  }),
+
+  // ─── Weather ─────────────────────────────────────────────────────────────────
+  weather: router({
+    forecast: protectedProcedure
+      .input(z.object({ tripId: z.number(), island: z.string().min(1).max(80) }))
+      .query(async ({ ctx, input }) => {
+        const { trip } = await assertTripAccess(input.tripId, ctx.user.id);
+        const tripIslands = Array.isArray(trip.islands) ? trip.islands as string[] : [];
+        if (tripIslands.length > 0 && !tripIslands.some((island) => island.toLowerCase() === input.island.toLowerCase())) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "That island is not part of this trip." });
+        }
+        try {
+          return await getIslandForecast(input.island);
+        } catch (error) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error instanceof Error ? error.message : "Unable to load the weather forecast.",
+          });
+        }
       }),
   }),
 
